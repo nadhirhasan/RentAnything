@@ -145,9 +145,32 @@ Is it available?".
   vehicle.
 - v1: **email + password**. Google sign-in next (needs Google Cloud OAuth credentials),
   phone OTP later.
-- Profile: name, phone, WhatsApp number (defaults to phone).
+- Sign up asks for name, email, password and **confirm password**. Passwords need at
+  least 8 characters with letters and numbers, and every password field has a
+  show / hide button.
+- **Forgot password**: the sign-in screen emails a reset link that opens
+  `/reset-password` in the app, where the user sets a new password (entered twice).
+  Signed-in users can request the same link from Account → Change password.
+  The Supabase project must list the app's URLs under Authentication → URL
+  Configuration → Redirect URLs (e.g. `http://localhost:8081/**`, `rentanything://**`
+  and the production web domain).
+- Profile: name, phone, WhatsApp number (defaults to phone). Sri Lankan numbers are
+  validated and stored as `077 123 4567`.
 - A phone number is required before a vehicle can be published (asked on the last step of
   Add vehicle if missing).
+
+### 6.1 Interaction standards
+
+Benchmarked against Booking.com and Daraz:
+
+- The whole input box is tappable; focus shows on the box's border only.
+- Errors appear under the field they belong to and clear as soon as the user edits it.
+- Amounts show thousands separators while typing (`12,000`).
+- Confirmations use in-app dialogs (delete listing, discard a half-filled form, sign
+  out); results use short toast messages ("Your vehicle is live", "Saved").
+- Loading shows grey placeholder cards instead of spinners.
+- Photos are never cropped: the full photo is shown over a blurred copy of itself, and
+  tapping opens a full-screen, swipeable viewer.
 
 ## 7. Tech stack
 
@@ -218,6 +241,9 @@ Differences from the Figma design:
 - "Continue with Google" isn't in the app yet (needs Google OAuth credentials).
 - Max price is chips instead of a slider (no native slider dependency).
 - No favourites (heart) button yet.
+- Sort is a bottom-sheet menu; switching a vehicle off asks for the back-on date in a
+  bottom sheet; the vehicle page has a share button and shows the price on the contact
+  bar.
 
 ## 11. Later
 

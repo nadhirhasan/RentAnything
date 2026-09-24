@@ -1,18 +1,20 @@
+import { createURL } from 'expo-linking';
 import { router } from 'expo-router';
-import { Car, ChevronRight, CircleCheck, LogOut } from 'lucide-react-native';
+import { Car, ChevronRight, KeyRound, LogOut } from 'lucide-react-native';
 import { useState, type ReactNode } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { useFeedback } from '@/components/feedback';
 import { Screen, SignInPrompt } from '@/components/layout';
-import { Button, Card, Field, Notice, ToggleRow } from '@/components/ui';
+import { Button, Card, Divider, Field, Notice, Skeleton, ToggleRow } from '@/components/ui';
 import { useAuth, type Profile } from '@/lib/auth';
+import { formatLKPhone, isValidLKPhone } from '@/lib/format';
 import { friendlyError, supabase } from '@/lib/supabase';
 import { colors, font } from '@/theme';
 
-const PHONE_RE = /^\+?[0-9 ]{9,16}$/;
-
 export default function AccountScreen() {
   const { session, profile, refreshProfile } = useAuth();
+  const { toast, confirm } = useFeedback();
 
   if (!session) {
     return (
@@ -26,72 +28,120 @@ export default function AccountScreen() {
     );
   }
 
+  const email = session.user.email ?? '';
+
+  const signOut = async () => {
+    const ok = await confirm({
+      title: 'Sign out?',
+      message: 'You can sign back in anytime with your email and password.',
+      confirmLabel: 'Sign out',
+      destructive: true,
+    });
+    if (!ok) return;
+    await supabase.auth.signOut();
+    toast('Signed out', 'info');
+  };
+
+  const changePassword = async () => {
+    const ok = await confirm({
+      title: 'Change password',
+      message: `We'll email a link to ${email} so you can set a new password.`,
+      confirmLabel: 'Send link',
+    });
+    if (!ok) return;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: createURL('/reset-password'),
+    });
+    if (error) toast(friendlyError(error), 'error');
+    else toast(`Link sent to ${email}`);
+  };
+
   return (
     <Screen>
       <Header />
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
           <View style={styles.avatar}>
-            <Text style={styles.initials}>{(profile?.full_name || session.user.email || '?')[0].toUpperCase()}</Text>
+            <Text style={styles.initials}>{initials(profile?.full_name || email)}</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.name}>{profile?.full_name || 'Your name'}</Text>
-            <Text style={styles.sub}>{session.user.email}</Text>
+            <Text style={styles.name}>{profile?.full_name || 'Add your name'}</Text>
+            <Text style={styles.sub}>{email}</Text>
           </View>
         </Card>
 
         {profile ? (
           <ContactForm key={profile.id} profile={profile} onSaved={refreshProfile} />
         ) : (
-          <ActivityIndicator color={colors.primary} />
+          <Card>
+            <Skeleton style={{ height: 18, width: '50%' }} />
+            <Skeleton style={{ height: 48 }} />
+            <Skeleton style={{ height: 48 }} />
+          </Card>
         )}
 
         <Card style={{ paddingVertical: 4, gap: 0 }}>
           <MenuRow icon={<Car size={20} color={colors.ink} />} label="My vehicles" onPress={() => router.navigate('/my-vehicles')} />
-          <MenuRow
-            icon={<LogOut size={20} color={colors.danger} />}
-            label="Sign out"
-            danger
-            onPress={() => supabase.auth.signOut()}
-          />
+          <Divider />
+          <MenuRow icon={<KeyRound size={20} color={colors.ink} />} label="Change password" onPress={changePassword} />
+          <Divider />
+          <MenuRow icon={<LogOut size={20} color={colors.danger} />} label="Sign out" danger onPress={signOut} />
         </Card>
       </ScrollView>
     </Screen>
   );
 }
 
+function initials(name: string) {
+  const parts = name.trim().split(/[\s@.]+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? '?') + (parts[1]?.[0] ?? '')).toUpperCase();
+}
+
 // Starts from the saved profile; remounted (via key) for a different user.
 function ContactForm({ profile, onSaved }: { profile: Profile; onSaved: () => void }) {
-  const [name, setName] = useState(profile.full_name);
-  const [phone, setPhone] = useState(profile.phone ?? '');
-  const [sameWhatsapp, setSameWhatsapp] = useState(!profile.whatsapp || profile.whatsapp === profile.phone);
-  const [whatsapp, setWhatsapp] = useState(profile.whatsapp ?? '');
+  const { toast } = useFeedback();
+  const initial = {
+    name: profile.full_name,
+    phone: profile.phone ?? '',
+    sameWhatsapp: !profile.whatsapp || profile.whatsapp === profile.phone,
+    whatsapp: profile.whatsapp ?? '',
+  };
+  const [name, setName] = useState(initial.name);
+  const [phone, setPhone] = useState(initial.phone);
+  const [sameWhatsapp, setSameWhatsapp] = useState(initial.sameWhatsapp);
+  const [whatsapp, setWhatsapp] = useState(initial.whatsapp);
+  const [errors, setErrors] = useState<{ name?: string; phone?: string; whatsapp?: string }>({});
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ tone: 'primary' | 'danger'; text: string } | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const dirty =
+    name !== initial.name ||
+    phone !== initial.phone ||
+    sameWhatsapp !== initial.sameWhatsapp ||
+    (!sameWhatsapp && whatsapp !== initial.whatsapp);
 
   const save = async () => {
-    setMessage(null);
-    const p = phone.trim();
-    const w = sameWhatsapp ? '' : whatsapp.trim();
-    if (p && !PHONE_RE.test(p)) {
-      setMessage({ tone: 'danger', text: 'Enter a valid phone number, e.g. 077 123 4567.' });
-      return;
-    }
-    if (w && !PHONE_RE.test(w)) {
-      setMessage({ tone: 'danger', text: 'Enter a valid WhatsApp number.' });
-      return;
-    }
+    const e: typeof errors = {};
+    if (!name.trim()) e.name = 'Enter your name';
+    if (phone.trim() && !isValidLKPhone(phone)) e.phone = 'Enter a valid number, e.g. 077 123 4567';
+    if (!sameWhatsapp && !isValidLKPhone(whatsapp)) e.whatsapp = 'Enter a valid WhatsApp number';
+    setErrors(e);
+    if (Object.keys(e).length) return;
     setBusy(true);
+    setFormError(null);
+    const p = phone.trim() ? formatLKPhone(phone) : null;
+    const w = sameWhatsapp ? null : formatLKPhone(whatsapp);
     const { error } = await supabase
       .from('profiles')
-      .update({ full_name: name.trim(), phone: p || null, whatsapp: w || null })
+      .update({ full_name: name.trim(), phone: p, whatsapp: w })
       .eq('id', profile.id);
     setBusy(false);
-    if (error) setMessage({ tone: 'danger', text: friendlyError(error) });
-    else {
-      setMessage({ tone: 'primary', text: 'Saved.' });
-      onSaved();
+    if (error) {
+      setFormError(friendlyError(error));
+      return;
     }
+    toast('Contact details saved');
+    onSaved();
   };
 
   return (
@@ -100,29 +150,50 @@ function ContactForm({ profile, onSaved }: { profile: Profile; onSaved: () => vo
       <Text style={styles.sub}>
         Customers use these to call or WhatsApp you about your vehicles. Only signed-in people can see them.
       </Text>
-      <Field label="Name" value={name} onChangeText={setName} placeholder="Your name" />
+      <Field
+        label="Full name"
+        value={name}
+        onChangeText={(v) => {
+          setName(v);
+          setErrors((x) => ({ ...x, name: undefined }));
+        }}
+        placeholder="Your name"
+        autoCapitalize="words"
+        autoComplete="name"
+        error={errors.name}
+      />
       <Field
         label="Phone number"
         value={phone}
-        onChangeText={setPhone}
+        onChangeText={(v) => {
+          setPhone(v);
+          setErrors((x) => ({ ...x, phone: undefined }));
+        }}
+        onBlur={() => phone.trim() && setPhone(formatLKPhone(phone))}
         placeholder="077 123 4567"
         keyboardType="phone-pad"
         textContentType="telephoneNumber"
+        autoComplete="tel"
+        hint={profile.phone ? undefined : 'Needed before you can list a vehicle.'}
+        error={errors.phone}
       />
       <ToggleRow title="WhatsApp on the same number" value={sameWhatsapp} onChange={setSameWhatsapp} />
       {!sameWhatsapp ? (
         <Field
           label="WhatsApp number"
           value={whatsapp}
-          onChangeText={setWhatsapp}
+          onChangeText={(v) => {
+            setWhatsapp(v);
+            setErrors((x) => ({ ...x, whatsapp: undefined }));
+          }}
+          onBlur={() => whatsapp.trim() && setWhatsapp(formatLKPhone(whatsapp))}
           placeholder="077 123 4567"
           keyboardType="phone-pad"
+          error={errors.whatsapp}
         />
       ) : null}
-      {message ? (
-        <Notice tone={message.tone} icon={message.tone === 'primary' ? CircleCheck : undefined} text={message.text} />
-      ) : null}
-      <Button label="Save" onPress={save} loading={busy} />
+      {formError ? <Notice tone="danger" text={formError} /> : null}
+      <Button label={dirty ? 'Save changes' : 'Saved'} onPress={save} loading={busy} disabled={!dirty} />
     </Card>
   );
 }

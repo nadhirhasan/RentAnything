@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { FeedbackProvider } from '@/components/feedback';
 import { AuthProvider } from '@/lib/auth';
 import { FiltersProvider } from '@/lib/filters';
 import { LocationProvider } from '@/lib/location';
@@ -14,25 +15,28 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <LocationProvider>
-          <FiltersProvider>
-            <StatusBar style="dark" />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: colors.background },
-              }}>
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="vehicle/[id]" />
-              <Stack.Screen name="filters" options={{ presentation: 'modal' }} />
-              <Stack.Screen name="sign-in" options={{ presentation: 'modal' }} />
-              <Stack.Screen name="listing/new" />
-              <Stack.Screen name="listing/[id]/edit" />
-            </Stack>
-          </FiltersProvider>
-        </LocationProvider>
-      </AuthProvider>
+      <FeedbackProvider>
+        <AuthProvider>
+          <LocationProvider>
+            <FiltersProvider>
+              <StatusBar style="dark" />
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: colors.background },
+                }}>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="vehicle/[id]" />
+                <Stack.Screen name="filters" options={{ presentation: 'modal' }} />
+                <Stack.Screen name="sign-in" options={{ presentation: 'modal' }} />
+                <Stack.Screen name="reset-password" />
+                <Stack.Screen name="listing/new" />
+                <Stack.Screen name="listing/[id]/edit" />
+              </Stack>
+            </FiltersProvider>
+          </LocationProvider>
+        </AuthProvider>
+      </FeedbackProvider>
     </SafeAreaProvider>
   );
 }

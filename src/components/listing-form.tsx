@@ -1,6 +1,6 @@
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import { Camera, Check, ChevronLeft, CircleAlert, Crosshair, MapPin, Plus, Trash2, X } from 'lucide-react-native';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 
+import { useFeedback } from '@/components/feedback';
 import { Screen } from '@/components/layout';
 import { TownPicker } from '@/components/town-picker';
 import {
@@ -29,6 +30,7 @@ import {
 } from '@/components/ui';
 import { VehiclePhoto } from '@/components/vehicle';
 import { useAuth } from '@/lib/auth';
+import { formatAmountInput, formatLKPhone, isValidLKPhone } from '@/lib/format';
 import { getGpsPosition } from '@/lib/location';
 import { STEPS, suggestTitle, toInputs, validateStep, type Errors, type FormState } from '@/lib/listing-form';
 import { MAX_PHOTOS, pickPhotos, syncListingPhotos } from '@/lib/photos';
@@ -45,7 +47,10 @@ import {
 } from '@/lib/vehicles';
 import { colors, font, radius } from '@/theme';
 
-const PHONE_RE = /^\+?[0-9 ]{9,16}$/;
+const POPULAR_MAKES = [
+  'Toyota', 'Suzuki', 'Nissan', 'Honda', 'Mitsubishi', 'Mazda', 'Micro', 'Perodua', 'Hyundai', 'Kia',
+  'Isuzu', 'Tata', 'Mahindra', 'Bajaj', 'TVS', 'Daihatsu', 'Mercedes-Benz', 'BMW',
+];
 const TITLE_FIELDS: (keyof FormState)[] = ['vehicle_type', 'make', 'model', 'seats', 'double_seat', 'has_ac'];
 
 export function ListingForm({
@@ -66,7 +71,11 @@ export function ListingForm({
   const [pickingTown, setPickingTown] = useState(false);
   const [locating, setLocating] = useState(false);
   const [phone, setPhone] = useState('');
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
+  const { toast, confirm } = useFeedback();
+  const navigation = useNavigation();
+  // Set once the listing is saved or deleted, so leaving doesn't ask to discard.
+  const allowLeave = useRef(false);
   // Set after the first successful save, so a retry updates instead of
   // creating a duplicate listing.
   const savedId = useRef<string | null>(listingId);
@@ -74,6 +83,28 @@ export function ListingForm({
 
   const needsPhone = !profile?.phone;
   const isEdit = listingId != null;
+  const dirty = phone !== '' || JSON.stringify(form) !== JSON.stringify(initial);
+
+  // Ask before throwing away a half-filled form (back button, swipe back).
+  useEffect(
+    () =>
+      navigation.addListener('beforeRemove', (e) => {
+        if (!dirty || allowLeave.current) return;
+        e.preventDefault();
+        confirm({
+          title: isEdit ? 'Discard your changes?' : 'Discard this listing?',
+          message: "What you've entered so far will be lost.",
+          confirmLabel: 'Discard',
+          cancelLabel: 'Keep editing',
+          destructive: true,
+        }).then((ok) => {
+          if (!ok) return;
+          allowLeave.current = true;
+          navigation.dispatch(e.data.action);
+        });
+      }),
+    [navigation, dirty, confirm, isEdit],
+  );
 
   const update = (patch: Partial<FormState>) => {
     // Editing a field clears its error.
@@ -101,7 +132,7 @@ export function ListingForm({
 
   const next = () => {
     const e = validateStep(step, form);
-    if (step === 3 && needsPhone && !PHONE_RE.test(phone.trim())) e.phone = 'Enter your phone number, e.g. 077 123 4567';
+    if (step === 3 && needsPhone && !isValidLKPhone(phone)) e.phone = 'Enter your phone number, e.g. 077 123 4567';
     setErrors(e);
     if (Object.keys(e).length) return false;
     if (step < STEPS.length - 1) goTo(step + 1);
@@ -137,38 +168,55 @@ export function ListingForm({
     if (!next() || !session) return;
     setBusy(true);
     setSubmitError(null);
+    setProgress('Saving details…');
     try {
       if (needsPhone) {
-        const { error } = await supabase.from('profiles').update({ phone: phone.trim() }).eq('id', session.user.id);
+        const { error } = await supabase
+          .from('profiles')
+          .update({ phone: formatLKPhone(phone) })
+          .eq('id', session.user.id);
         if (error) throw error;
         await refreshProfile();
       }
       const { listing, details } = toInputs(form);
       const id = await saveVehicleListing(listing, details, savedId.current);
       savedId.current = id;
-      await syncListingPhotos(session.user.id, id, form.photos, existingPhotos, (key, saved) =>
+      const toUpload = form.photos.filter((p) => !p.id).length;
+      let uploaded = 0;
+      if (toUpload) setProgress(`Uploading photos (0 of ${toUpload})…`);
+      await syncListingPhotos(session.user.id, id, form.photos, existingPhotos, (key, saved) => {
+        uploaded += 1;
+        setProgress(`Uploading photos (${uploaded} of ${toUpload})…`);
         setForm((f) => ({
           ...f,
           photos: f.photos.map((p) => (p.key === key ? { ...p, ...saved } : p)),
-        })),
-      );
+        }));
+      });
+      allowLeave.current = true;
+      toast(isEdit ? 'Changes saved' : form.is_available ? 'Your vehicle is live' : 'Vehicle saved (switched off)');
       router.back();
     } catch (e) {
       setSubmitError(friendlyError(e));
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   };
 
   const remove = async () => {
     if (!listingId) return;
-    if (!confirmDelete) {
-      setConfirmDelete(true);
-      return;
-    }
+    const ok = await confirm({
+      title: 'Delete this listing?',
+      message: 'It will be removed from search and its photos deleted. This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       await deleteListing(listingId);
+      allowLeave.current = true;
+      toast('Listing deleted', 'info');
       router.back();
     } catch (e) {
       setSubmitError(friendlyError(e));
@@ -177,6 +225,11 @@ export function ListingForm({
   };
 
   const town = TOWNS.find((t) => t.name === form.town);
+  // Quick picks for the make; hidden once one is chosen exactly.
+  const makeQuery = form.make.trim().toLowerCase();
+  const makeSuggestions = POPULAR_MAKES.some((m) => m.toLowerCase() === makeQuery)
+    ? []
+    : POPULAR_MAKES.filter((m) => m.toLowerCase().startsWith(makeQuery)).slice(0, 8);
   const hasErrors = Object.keys(errors).length > 0;
 
   return (
@@ -230,11 +283,23 @@ export function ListingForm({
                   style={{ flex: 1 }}
                 />
               </View>
+              {makeSuggestions.length ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  contentContainerStyle={{ gap: 8 }}
+                  style={{ marginTop: -8 }}>
+                  {makeSuggestions.map((m) => (
+                    <Chip key={m} label={m} onPress={() => update({ make: m })} />
+                  ))}
+                </ScrollView>
+              ) : null}
               <View style={styles.pair}>
                 <Field
                   label="Year"
                   value={form.year}
-                  onChangeText={(year) => update({ year })}
+                  onChangeText={(t) => update({ year: t.replace(/[^0-9]/g, '') })}
                   placeholder="2016"
                   keyboardType="number-pad"
                   maxLength={4}
@@ -281,7 +346,7 @@ export function ListingForm({
                 label="Price per day"
                 prefix="Rs"
                 value={form.price_per_day}
-                onChangeText={(price_per_day) => update({ price_per_day })}
+                onChangeText={(t) => update({ price_per_day: formatAmountInput(t) })}
                 keyboardType="number-pad"
                 placeholder="6,000"
                 error={errors.price_per_day}
@@ -292,7 +357,7 @@ export function ListingForm({
                     label="Free km per day"
                     suffix="km"
                     value={form.km_per_day}
-                    onChangeText={(km_per_day) => update({ km_per_day })}
+                    onChangeText={(t) => update({ km_per_day: formatAmountInput(t) })}
                     keyboardType="number-pad"
                     placeholder="100"
                     error={errors.km_per_day}
@@ -303,7 +368,7 @@ export function ListingForm({
                     prefix="Rs"
                     suffix="/km"
                     value={form.extra_km_rate}
-                    onChangeText={(extra_km_rate) => update({ extra_km_rate })}
+                    onChangeText={(t) => update({ extra_km_rate: formatAmountInput(t) })}
                     keyboardType="number-pad"
                     placeholder="45"
                     error={errors.extra_km_rate}
@@ -333,9 +398,9 @@ export function ListingForm({
                   on={form.weekly_on}
                   onToggle={(weekly_on) => update({ weekly_on })}
                   price={form.weekly_price}
-                  onPrice={(weekly_price) => update({ weekly_price })}
+                  onPrice={(t) => update({ weekly_price: formatAmountInput(t) })}
                   km={form.weekly_km}
-                  onKm={(weekly_km) => update({ weekly_km })}
+                  onKm={(t) => update({ weekly_km: formatAmountInput(t) })}
                   priceError={errors.weekly_price}
                 />
                 <OfferCard
@@ -344,9 +409,9 @@ export function ListingForm({
                   on={form.monthly_on}
                   onToggle={(monthly_on) => update({ monthly_on })}
                   price={form.monthly_price}
-                  onPrice={(monthly_price) => update({ monthly_price })}
+                  onPrice={(t) => update({ monthly_price: formatAmountInput(t) })}
                   km={form.monthly_km}
-                  onKm={(monthly_km) => update({ monthly_km })}
+                  onKm={(t) => update({ monthly_km: formatAmountInput(t) })}
                   priceError={errors.monthly_price}
                 />
               </Group>
@@ -377,7 +442,7 @@ export function ListingForm({
                       prefix="Rs"
                       suffix="/day"
                       value={form.driver_price_per_day}
-                      onChangeText={(driver_price_per_day) => update({ driver_price_per_day })}
+                      onChangeText={(t) => update({ driver_price_per_day: formatAmountInput(t) })}
                       keyboardType="number-pad"
                       placeholder="3,000"
                       error={errors.driver_price_per_day}
@@ -393,7 +458,7 @@ export function ListingForm({
                 label="Refundable deposit (optional)"
                 prefix="Rs"
                 value={form.deposit}
-                onChangeText={(deposit) => update({ deposit })}
+                onChangeText={(t) => update({ deposit: formatAmountInput(t) })}
                 keyboardType="number-pad"
                 placeholder="25,000"
               />
@@ -453,7 +518,7 @@ export function ListingForm({
                     accessibilityLabel={i === 0 ? 'Cover photo' : 'Make cover photo'}
                     onPress={() => update({ photos: [p, ...form.photos.filter((x) => x.key !== p.key)] })}
                     style={styles.photoTile}>
-                    <VehiclePhoto uri={p.uri || undefined} path={p.path} seed={p.key} style={StyleSheet.absoluteFill} iconSize={32} />
+                    <VehiclePhoto uri={p.uri || undefined} path={p.path} seed={p.key} style={StyleSheet.absoluteFill} iconSize={32} fit="cover" />
                     {i === 0 ? (
                       <View style={styles.cover}>
                         <Text style={styles.coverText}>Cover</Text>
@@ -529,7 +594,7 @@ export function ListingForm({
               </Card>
               {isEdit ? (
                 <Button
-                  label={confirmDelete ? 'Tap again to delete for good' : 'Delete this listing'}
+                  label="Delete this listing"
                   kind="danger"
                   icon={Trash2}
                   onPress={remove}
@@ -544,6 +609,7 @@ export function ListingForm({
         </ScrollView>
       </KeyboardAvoidingView>
 
+      {progress ? <Text style={styles.progressText}>{progress}</Text> : null}
       <View style={styles.footer}>
         {step > 0 ? <Button label="Back" kind="ghost" onPress={back} /> : null}
         <Button
@@ -729,6 +795,13 @@ const styles = StyleSheet.create({
   },
   townText: { flex: 1, fontSize: 15, fontWeight: font.semibold, color: colors.ink },
   change: { fontSize: 14, fontWeight: font.semibold, color: colors.primary },
+  progressText: {
+    fontSize: 13,
+    color: colors.text2,
+    textAlign: 'center',
+    paddingTop: 8,
+    backgroundColor: colors.white,
+  },
   footer: {
     flexDirection: 'row',
     gap: 12,

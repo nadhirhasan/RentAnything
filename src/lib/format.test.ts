@@ -6,8 +6,13 @@ import { test } from 'node:test';
 import {
   base64ToBytes,
   colomboDate,
+  formatAmountInput,
   formatDistance,
+  formatLKPhone,
   formatLKR,
+  isValidEmail,
+  isValidLKPhone,
+  passwordProblem,
   parseAmount,
   telUrl,
   toInternationalLK,
@@ -56,4 +61,32 @@ test('colomboDate uses Sri Lanka time (UTC+5:30)', () => {
 test('base64ToBytes', () => {
   assert.deepEqual([...base64ToBytes('aGVsbG8=')], [...Buffer.from('hello')]);
   assert.deepEqual([...base64ToBytes('AAEC/w==')], [0, 1, 2, 255]);
+});
+
+test('formatAmountInput adds thousands separators', () => {
+  assert.equal(formatAmountInput('12000'), '12,000');
+  assert.equal(formatAmountInput('Rs 1,20,000'), '120,000');
+  assert.equal(formatAmountInput('007'), '7');
+  assert.equal(formatAmountInput('abc'), '');
+  assert.equal(formatAmountInput('0'), '0');
+});
+
+test('isValidEmail', () => {
+  assert.equal(isValidEmail(' kasun@example.com '), true);
+  assert.equal(isValidEmail('kasun@example'), false);
+  assert.equal(isValidEmail('kasun example.com'), false);
+});
+
+test('passwordProblem', () => {
+  assert.match(passwordProblem('abc1')!, /at least 8/);
+  assert.match(passwordProblem('abcdefgh')!, /letters and numbers/);
+  assert.equal(passwordProblem('rentvan2026'), null);
+});
+
+test('Sri Lankan phone validation and formatting', () => {
+  assert.equal(isValidLKPhone('077 123 4567'), true);
+  assert.equal(isValidLKPhone('+94 77 123 4567'), true);
+  assert.equal(isValidLKPhone('77123'), false);
+  assert.equal(formatLKPhone('0771234567'), '077 123 4567');
+  assert.equal(formatLKPhone('+94771234567'), '077 123 4567');
 });

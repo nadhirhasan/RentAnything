@@ -3,7 +3,7 @@ import { Link } from 'expo-router';
 import { Armchair, Car, Gauge, MapPin, Snowflake, Tag as TagIcon, User, Users } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { Tag } from '@/components/ui';
+import { Skeleton, Tag } from '@/components/ui';
 import { formatDistance, formatKm, formatLKR } from '@/lib/format';
 import { photoUrl } from '@/lib/supabase';
 import type { VehicleSummary } from '@/lib/vehicles';
@@ -19,23 +19,34 @@ function placeholderColor(seed: string) {
 
 // A listing photo from Storage (by path) or a local picked photo (by uri),
 // with a coloured car placeholder when there is none.
+// fit="contain" (default) shows the whole photo over a blurred copy of itself,
+// so portrait or square phone photos aren't cut at the top and bottom.
+// fit="cover" fills the box (for small square thumbnails).
 export function VehiclePhoto({
   path,
   uri,
   seed,
   style,
   iconSize = 56,
+  fit = 'contain',
 }: {
   path?: string | null;
   uri?: string;
   seed: string;
   style?: StyleProp<ViewStyle>;
   iconSize?: number;
+  fit?: 'contain' | 'cover';
 }) {
   const src = uri ?? (path ? photoUrl(path) : null);
   return (
     <View style={[{ backgroundColor: placeholderColor(seed), overflow: 'hidden' }, style]}>
-      {src ? (
+      {src && fit === 'contain' ? (
+        <>
+          <Image source={{ uri: src }} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={30} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(15, 23, 42, 0.2)' }]} />
+          <Image source={{ uri: src }} style={StyleSheet.absoluteFill} contentFit="contain" transition={150} />
+        </>
+      ) : src ? (
         <Image source={{ uri: src }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
       ) : (
         <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
@@ -88,7 +99,7 @@ export function VehicleCard({ v }: { v: VehicleSummary }) {
         <View style={styles.info}>
           <View style={styles.row}>
             <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.title} numberOfLines={1}>
+              <Text style={styles.title} numberOfLines={2}>
                 {v.title}
               </Text>
               <Text style={styles.sub} numberOfLines={1}>
@@ -123,6 +134,29 @@ export function VehicleCard({ v }: { v: VehicleSummary }) {
   );
 }
 
+// Placeholder shown while search results load.
+export function VehicleCardSkeleton() {
+  return (
+    <View style={styles.card} accessibilityLabel="Loading">
+      <Skeleton style={[styles.photo, { borderRadius: 0 }]} />
+      <View style={styles.info}>
+        <View style={styles.row}>
+          <View style={{ flex: 1, gap: 8 }}>
+            <Skeleton style={{ height: 16, width: '70%' }} />
+            <Skeleton style={{ height: 12, width: '40%' }} />
+          </View>
+          <Skeleton style={{ height: 20, width: 80 }} />
+        </View>
+        <View style={styles.tags}>
+          <Skeleton style={{ height: 24, width: 72 }} />
+          <Skeleton style={{ height: 24, width: 48 }} />
+          <Skeleton style={{ height: 24, width: 90 }} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.white,
@@ -131,7 +165,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     overflow: 'hidden',
   },
-  photo: { height: 170, width: '100%' },
+  photo: { width: '100%', aspectRatio: 16 / 10 },
   pill: {
     position: 'absolute',
     top: 12,
