@@ -48,6 +48,14 @@ export function friendlyError(error: unknown): string {
     return 'This vehicle is no longer available.';
   if (message.includes('listing_not_found')) return 'Listing not found.';
   if (message.includes('Invalid login credentials')) return 'Wrong email or password.';
+  if (message.includes('Email not confirmed'))
+    return 'Please confirm your email first. Check your inbox for the link.';
+  if (message.includes('User already registered'))
+    return 'An account with this email already exists. Sign in instead.';
+  if (/rate limit|too many requests|security purposes/i.test(message))
+    return 'Too many attempts. Please wait a minute and try again.';
+  if (/expired|invalid.*(token|grant|flow)/i.test(message))
+    return 'This link has expired or was already used.';
   if (message.includes('Network request failed') || message.includes('Failed to fetch'))
     return 'No internet connection. Please try again.';
   return message;

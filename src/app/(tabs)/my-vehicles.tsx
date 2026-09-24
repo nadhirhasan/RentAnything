@@ -1,10 +1,12 @@
 import { router, useFocusEffect } from 'expo-router';
 import { Calendar, Car, Check, Eye, EyeOff, Info, Pencil, Plus } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
+import { useFeedback } from '@/components/feedback';
 import { EmptyState, Screen, SignInPrompt } from '@/components/layout';
-import { Button, Chip, Divider, Notice, Tag, Toggle } from '@/components/ui';
+import { OptionSheet } from '@/components/sheet';
+import { Button, Divider, Notice, Skeleton, Tag, Toggle } from '@/components/ui';
 import { VehiclePhoto } from '@/components/vehicle';
 import { useAuth } from '@/lib/auth';
 import { colomboDate, formatDateShort, formatLKR } from '@/lib/format';
@@ -12,13 +14,14 @@ import { friendlyError } from '@/lib/supabase';
 import { getMyListings, isSwitchedOn, setAvailability, type MyListing } from '@/lib/vehicles';
 import { colors, font, radius } from '@/theme';
 
-const BACK_ON_OPTIONS: { label: string; days: number | null }[] = [
-  { label: 'No date', days: null },
-  { label: 'Tomorrow', days: 1 },
-  { label: 'In 3 days', days: 3 },
-  { label: 'In a week', days: 7 },
-  { label: 'In 2 weeks', days: 14 },
-  { label: 'In a month', days: 30 },
+// value = days from today; 0 = no date (owner switches it back on).
+const BACK_ON_OPTIONS: { label: string; value: number }[] = [
+  { label: 'Not sure yet', value: 0 },
+  { label: 'Tomorrow', value: 1 },
+  { label: 'In 3 days', value: 3 },
+  { label: 'In a week', value: 7 },
+  { label: 'In 2 weeks', value: 14 },
+  { label: 'In a month', value: 30 },
 ];
 
 export default function MyVehiclesScreen() {
@@ -74,8 +77,9 @@ export default function MyVehiclesScreen() {
         error ? (
           <EmptyState icon={Car} title="Couldn't load your vehicles" text={error} action={<Button label="Try again" onPress={load} />} />
         ) : (
-          <View style={styles.center}>
-            <ActivityIndicator color={colors.primary} />
+          <View style={{ padding: 16, gap: 12 }}>
+            <OwnerCardSkeleton />
+            <OwnerCardSkeleton />
           </View>
         )
       ) : (
@@ -141,8 +145,10 @@ function OwnerVehicleCard({
   onChange: (patch: Partial<MyListing>) => void;
 }) {
   const on = isSwitchedOn(l, today);
+  const { toast } = useFeedback();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pickingDate, setPickingDate] = useState(false);
   const v = l.vehicle_details;
 
   const save = async (nextOn: boolean, backOn: string | null) => {
@@ -152,6 +158,13 @@ function OwnerVehicleCard({
     setError(null);
     try {
       await setAvailability(l.id, nextOn, backOn);
+      toast(
+        nextOn
+          ? 'Showing in search again'
+          : backOn
+            ? `Hidden until ${formatDateShort(backOn)}`
+            : 'Hidden from search',
+      );
     } catch (e) {
       onChange(before);
       setError(friendlyError(e));
@@ -159,6 +172,12 @@ function OwnerVehicleCard({
       setSaving(false);
     }
   };
+
+  // Which quick option matches the saved back-on date (-1 = none of them).
+  const selectedDays =
+    l.available_again_on == null
+      ? 0
+      : (BACK_ON_OPTIONS.find((o) => o.value > 0 && colomboDate(o.value) === l.available_again_on)?.value ?? -1);
 
   const status = l.is_hidden ? (
     <Tag label="Hidden by admin" icon={EyeOff} />
@@ -170,20 +189,24 @@ function OwnerVehicleCard({
 
   return (
     <View style={styles.card}>
-      <View style={styles.row}>
-        <VehiclePhoto path={l.listing_photos[0]?.path} seed={l.id} style={styles.thumb} iconSize={26} />
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel={`Preview ${l.title}`}
+        onPress={() => router.push({ pathname: '/vehicle/[id]', params: { id: l.id } })}
+        style={({ pressed }) => [styles.row, pressed && { opacity: 0.8 }]}>
+        <VehiclePhoto path={l.listing_photos[0]?.path} seed={l.id} style={styles.thumb} iconSize={26} fit="cover" />
         <View style={{ flex: 1, gap: 4 }}>
-          <Text style={styles.title} numberOfLines={1}>
+          <Text style={styles.title} numberOfLines={2}>
             {l.title}
           </Text>
           {v ? (
             <Text style={styles.sub}>
-              {formatLKR(v.price_per_day)}/day · {v.seats} seats
+              {formatLKR(v.price_per_day)}/day · {v.seats} seats · {l.town}
             </Text>
           ) : null}
           {status}
         </View>
-      </View>
+      </Pressable>
       <Divider />
       <View style={styles.row}>
         <View style={{ flex: 1, gap: 2 }}>
@@ -192,32 +215,29 @@ function OwnerVehicleCard({
             {on ? 'Customers can see and call you' : "Switched off — you won't get calls"}
           </Text>
         </View>
-        <Toggle value={on} onChange={(next) => save(next, null)} disabled={saving} label="Available for rent" />
+        <Toggle
+          value={on}
+          onChange={(next) => (next ? save(true, null) : setPickingDate(true))}
+          disabled={saving}
+          label="Available for rent"
+        />
       </View>
 
       {!on ? (
-        <View style={styles.backOn}>
-          <View style={[styles.row, { gap: 8 }]}>
-            <Calendar size={18} color={colors.text2} />
-            <Text style={[styles.small, { flex: 1, fontSize: 14 }]}>Back on automatically</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Change back-on date"
+          onPress={() => setPickingDate(true)}
+          style={({ pressed }) => [styles.backOn, pressed && { opacity: 0.8 }]}>
+          <Calendar size={18} color={colors.text2} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.backOnLabel}>Back on automatically</Text>
             <Text style={styles.backOnDate}>
-              {l.available_again_on ? formatDateShort(l.available_again_on) : 'Not set'}
+              {l.available_again_on ? formatDateShort(l.available_again_on) : 'Not set — switch on yourself'}
             </Text>
           </View>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-            {BACK_ON_OPTIONS.map((o) => {
-              const date = o.days == null ? null : colomboDate(o.days);
-              return (
-                <Chip
-                  key={o.label}
-                  label={o.label}
-                  selected={l.available_again_on === date}
-                  onPress={() => save(false, date)}
-                />
-              );
-            })}
-          </View>
-        </View>
+          <Text style={styles.change}>Change</Text>
+        </Pressable>
       ) : null}
 
       {error ? <Notice tone="danger" text={error} /> : null}
@@ -240,6 +260,35 @@ function OwnerVehicleCard({
           onPress={() => router.push({ pathname: '/vehicle/[id]', params: { id: l.id } })}
         />
       </View>
+
+      <OptionSheet
+        visible={pickingDate}
+        title="When will it be available again?"
+        options={BACK_ON_OPTIONS.map((o) => ({
+          value: o.value,
+          label: o.label,
+          description: o.value > 0 ? formatDateShort(colomboDate(o.value)) : 'Switch it back on yourself',
+        }))}
+        value={on ? -2 : selectedDays}
+        onSelect={(days) => save(false, days > 0 ? colomboDate(days) : null)}
+        onClose={() => setPickingDate(false)}
+      />
+    </View>
+  );
+}
+
+function OwnerCardSkeleton() {
+  return (
+    <View style={styles.card}>
+      <View style={styles.row}>
+        <Skeleton style={styles.thumb} />
+        <View style={{ flex: 1, gap: 8 }}>
+          <Skeleton style={{ height: 16, width: '75%' }} />
+          <Skeleton style={{ height: 12, width: '50%' }} />
+          <Skeleton style={{ height: 22, width: 120 }} />
+        </View>
+      </View>
+      <Skeleton style={{ height: 40 }} />
     </View>
   );
 }
@@ -270,6 +319,15 @@ const styles = StyleSheet.create({
   thumb: { width: 72, height: 72, borderRadius: radius.md },
   title: { fontSize: 15, fontWeight: font.semibold, color: colors.ink },
   toggleTitle: { fontSize: 15, fontWeight: font.semibold, color: colors.ink },
-  backOn: { gap: 10, padding: 12, borderRadius: radius.md, backgroundColor: colors.background },
-  backOnDate: { fontSize: 14, fontWeight: font.semibold, color: colors.primary },
+  backOn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: radius.md,
+    backgroundColor: colors.background,
+  },
+  backOnLabel: { fontSize: 12, color: colors.text2 },
+  backOnDate: { fontSize: 14, fontWeight: font.semibold, color: colors.ink },
+  change: { fontSize: 14, fontWeight: font.semibold, color: colors.primary },
 });

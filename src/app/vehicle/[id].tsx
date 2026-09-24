@@ -1,3 +1,4 @@
+import { createURL } from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   Check,
@@ -9,6 +10,7 @@ import {
   MessageCircle,
   Phone,
   Plus,
+  Share2,
   Snowflake,
   User,
   Users,
@@ -19,7 +21,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
+  Platform,
+  Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -41,6 +46,8 @@ import {
   Stepper,
   Tag,
 } from '@/components/ui';
+import { useFeedback } from '@/components/feedback';
+import { PhotoViewer } from '@/components/photo-viewer';
 import { VehiclePhoto } from '@/components/vehicle';
 import { useAuth } from '@/lib/auth';
 import { formatDistance, formatKm, formatLKR, parseAmount, telUrl, whatsappUrl } from '@/lib/format';
@@ -60,12 +67,12 @@ import {
 } from '@/lib/vehicles';
 import { colors, font, maxContentWidth, radius } from '@/theme';
 
-const PHOTO_HEIGHT = 290;
 
 export default function VehicleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { place } = useUserLocation();
   const { session } = useAuth();
+  const { toast } = useFeedback();
   const insets = useSafeAreaInsets();
 
   // Tagged with the listing id it belongs to; loading = no result for this id yet.
@@ -131,6 +138,26 @@ export default function VehicleScreen() {
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+
+  const share = async () => {
+    if (!v) return;
+    const url =
+      Platform.OS === 'web' && typeof window !== 'undefined'
+        ? window.location.href
+        : createURL(`/vehicle/${v.id}`);
+    const message = `${v.title} for rent in ${v.town}: ${formatLKR(v.price_per_day)}/day on RentAnything`;
+    try {
+      await Share.share({ title: v.title, message: `${message}\n${url}`, url });
+    } catch {
+      // Browsers without the share sheet: copy the link instead.
+      if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+        toast('Link copied');
+      }
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -156,7 +183,13 @@ export default function VehicleScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <PhotoPager v={v} topInset={insets.top} onBack={goBack} />
+        <PhotoPager
+          v={v}
+          topInset={insets.top}
+          onBack={goBack}
+          onOpen={setViewerIndex}
+          onShare={share}
+        />
 
         {!v.is_live ? (
           <View style={{ padding: 16, backgroundColor: colors.white }}>
@@ -309,12 +342,18 @@ export default function VehicleScreen() {
               </Text>
             </View>
           ) : null}
-          <View style={{ flexDirection: 'row', gap: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View style={{ flexShrink: 1, minWidth: 84 }}>
+              <Text style={styles.barPrice} numberOfLines={1}>
+                {formatLKR(v.price_per_day)}
+              </Text>
+              <Text style={styles.barPer}>per day</Text>
+            </View>
             <Button
               label="WhatsApp"
               kind="whatsapp"
               icon={MessageCircle}
-              style={{ flex: 1 }}
+              style={styles.barButton}
               loading={contacting === 'whatsapp'}
               disabled={!v.is_live}
               onPress={() => contact('whatsapp')}
@@ -322,7 +361,7 @@ export default function VehicleScreen() {
             <Button
               label="Call"
               icon={Phone}
-              style={{ flex: 1 }}
+              style={styles.barButton}
               loading={contacting === 'call'}
               disabled={!v.is_live}
               onPress={() => contact('call')}
@@ -330,11 +369,32 @@ export default function VehicleScreen() {
           </View>
         </View>
       </View>
+
+      {v.photos.length ? (
+        <PhotoViewer
+          photos={v.photos}
+          start={viewerIndex ?? 0}
+          visible={viewerIndex != null}
+          onClose={() => setViewerIndex(null)}
+        />
+      ) : null}
     </View>
   );
 }
 
-function PhotoPager({ v, topInset, onBack }: { v: VehicleDetail; topInset: number; onBack: () => void }) {
+function PhotoPager({
+  v,
+  topInset,
+  onBack,
+  onOpen,
+  onShare,
+}: {
+  v: VehicleDetail;
+  topInset: number;
+  onBack: () => void;
+  onOpen: (index: number) => void;
+  onShare: () => void;
+}) {
   const [width, setWidth] = useState(0);
   const [index, setIndex] = useState(0);
   const photos = v.photos.length ? v.photos : [null];
@@ -345,7 +405,7 @@ function PhotoPager({ v, topInset, onBack }: { v: VehicleDetail; topInset: numbe
   };
 
   return (
-    <View style={{ height: PHOTO_HEIGHT }} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+    <View style={styles.pager} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
       {width ? (
         <ScrollView
           horizontal
@@ -354,19 +414,37 @@ function PhotoPager({ v, topInset, onBack }: { v: VehicleDetail; topInset: numbe
           onScroll={onScroll}
           scrollEventThrottle={32}>
           {photos.map((p, i) => (
-            <VehiclePhoto key={p ?? i} path={p} seed={v.id} style={{ width, height: PHOTO_HEIGHT }} iconSize={96} />
+            <Pressable
+              key={p ?? i}
+              disabled={!p}
+              onPress={() => onOpen(i)}
+              accessibilityRole="imagebutton"
+              accessibilityLabel={`Photo ${i + 1} of ${photos.length}. Open full screen`}
+              style={{ width, height: '100%' }}>
+              <VehiclePhoto path={p} seed={v.id} style={{ width, height: '100%' }} iconSize={96} />
+            </Pressable>
           ))}
         </ScrollView>
       ) : null}
       <View style={[styles.photoButton, { top: topInset + 8, left: 16 }]}>
         <RoundIconButton icon={ChevronLeft} label="Back" onPress={onBack} size={40} background={colors.white} />
       </View>
+      <View style={[styles.photoButton, { top: topInset + 8, right: 16 }]}>
+        <RoundIconButton icon={Share2} label="Share" onPress={onShare} size={40} background={colors.white} />
+      </View>
       {v.photos.length > 1 ? (
-        <View style={styles.counter}>
-          <Text style={styles.counterText}>
-            {index + 1} / {v.photos.length}
-          </Text>
-        </View>
+        <>
+          <View style={styles.dots}>
+            {v.photos.map((p, i) => (
+              <View key={p} style={[styles.dot, i === index && styles.dotActive]} />
+            ))}
+          </View>
+          <View style={styles.counter}>
+            <Text style={styles.counterText}>
+              {index + 1} / {v.photos.length}
+            </Text>
+          </View>
+        </>
       ) : null}
     </View>
   );
@@ -512,7 +590,22 @@ const styles = StyleSheet.create({
   },
   ownerInitials: { fontSize: 15, fontWeight: font.bold, color: colors.primary },
   ownerName: { fontSize: 15, fontWeight: font.semibold, color: colors.ink },
+  pager: { width: '100%', aspectRatio: 4 / 3, maxHeight: 440 },
   photoButton: { position: 'absolute' },
+  dots: {
+    position: 'absolute',
+    bottom: 14,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.6)' },
+  dotActive: { width: 18, backgroundColor: colors.white },
+  barPrice: { fontSize: 17, fontWeight: font.bold, color: colors.ink },
+  barPer: { fontSize: 12, color: colors.muted },
+  barButton: { flex: 1, paddingHorizontal: 10 },
   counter: {
     position: 'absolute',
     right: 16,

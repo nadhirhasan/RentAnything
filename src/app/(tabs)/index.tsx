@@ -1,5 +1,14 @@
 import { router } from 'expo-router';
-import { ChevronDown, CircleUser, MapPin, Search, SearchX, SlidersHorizontal } from 'lucide-react-native';
+import {
+  ArrowUpDown,
+  ChevronDown,
+  CircleUser,
+  MapPin,
+  Search,
+  SearchX,
+  SlidersHorizontal,
+  X,
+} from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,9 +23,10 @@ import {
 } from 'react-native';
 
 import { EmptyState, Screen } from '@/components/layout';
+import { OptionSheet } from '@/components/sheet';
 import { TownPicker } from '@/components/town-picker';
-import { Button, Chip, Notice } from '@/components/ui';
-import { VehicleCard } from '@/components/vehicle';
+import { Button, Chip, Notice, webNoOutline } from '@/components/ui';
+import { VehicleCard, VehicleCardSkeleton } from '@/components/vehicle';
 import { useFilters } from '@/lib/filters';
 import { useUserLocation } from '@/lib/location';
 import { friendlyError } from '@/lib/supabase';
@@ -26,6 +36,7 @@ import {
   PAGE_SIZE,
   searchVehicles,
   VEHICLE_TYPES,
+  type SortBy,
   type VehicleSummary,
   type VehicleType,
 } from '@/lib/vehicles';
@@ -35,6 +46,9 @@ export default function ExploreScreen() {
   const { place, status, locateWithGps, chooseTown } = useUserLocation();
   const { filters, setFilters } = useFilters();
   const [pickingTown, setPickingTown] = useState(false);
+  const [sorting, setSorting] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchRef = useRef<TextInput>(null);
 
   // Search box: update the shared filters 400 ms after typing stops.
   const [text, setText] = useState(filters.text);
@@ -123,18 +137,18 @@ export default function ExploreScreen() {
   const header = (
     <View style={styles.resultsHeader}>
       <Text style={styles.count}>
-        {loading ? 'Searching…' : `${total} available near you`}
+        {loading ? 'Searching…' : `${total} ${total === 1 ? 'vehicle' : 'vehicles'} available`}
       </Text>
       <Pressable
         accessibilityRole="button"
-        onPress={() =>
-          setFilters({ ...filters, sortBy: filters.sortBy === 'nearest' ? 'price' : 'nearest' })
-        }
+        accessibilityLabel={`Sort: ${SORT_OPTIONS.find((o) => o.value === filters.sortBy)?.label}`}
+        onPress={() => setSorting(true)}
+        hitSlop={8}
         style={styles.sort}>
+        <ArrowUpDown size={16} color={colors.primary} />
         <Text style={styles.sortText}>
-          {filters.sortBy === 'nearest' ? 'Nearest first' : 'Lowest price'}
+          {SORT_OPTIONS.find((o) => o.value === filters.sortBy)?.label}
         </Text>
-        <ChevronDown size={16} color={colors.primary} />
       </Pressable>
     </View>
   );
@@ -167,18 +181,38 @@ export default function ExploreScreen() {
         </View>
 
         <View style={styles.searchRow}>
-          <View style={styles.search}>
-            <Search size={18} color={colors.muted} />
+          <Pressable
+            accessible={false}
+            onPress={() => searchRef.current?.focus()}
+            style={[styles.search, searchFocused && styles.searchFocused]}>
+            <Search size={18} color={searchFocused ? colors.primary : colors.muted} />
             <TextInput
+              ref={searchRef}
               value={text}
               onChangeText={setText}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
               placeholder="Search van, car, town…"
               placeholderTextColor={colors.muted}
-              style={styles.searchInput}
+              style={[styles.searchInput, webNoOutline]}
               returnKeyType="search"
+              autoCorrect={false}
               accessibilityLabel="Search vehicles"
             />
-          </View>
+            {text ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Clear search"
+                hitSlop={10}
+                onPress={() => {
+                  setText('');
+                  setFilters({ ...filters, text: '' });
+                }}
+                style={styles.clear}>
+                <X size={14} color={colors.white} strokeWidth={3} />
+              </Pressable>
+            ) : null}
+          </Pressable>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Filters${filterCount ? `, ${filterCount} active` : ''}`}
@@ -216,17 +250,25 @@ export default function ExploreScreen() {
       ) : null}
 
       {!place ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={colors.primary} />
-          <Text style={styles.muted}>Finding vehicles near you…</Text>
+        <View style={{ padding: 16, gap: 12 }}>
+          <Text style={styles.count}>Finding vehicles near you…</Text>
+          <VehicleCardSkeleton />
+          <VehicleCardSkeleton />
         </View>
       ) : (
         <FlatList
           data={items}
           keyExtractor={(v) => v.id}
-          renderItem={({ item }) => <VehicleCard v={item} />}
+          renderItem={({ item }) => (
+            // Dim old results while a new search runs.
+            <View style={{ opacity: loading ? 0.5 : 1 }}>
+              <VehicleCard v={item} />
+            </View>
+          )}
           ListHeaderComponent={header}
           contentContainerStyle={{ padding: 16, gap: 12 }}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
           onEndReachedThreshold={0.5}
           onEndReached={loadMore}
           refreshControl={
@@ -239,7 +281,12 @@ export default function ExploreScreen() {
             />
           }
           ListEmptyComponent={
-            loading ? null : error ? (
+            loading ? (
+              <View style={{ gap: 12 }}>
+                <VehicleCardSkeleton />
+                <VehicleCardSkeleton />
+              </View>
+            ) : error ? (
               <EmptyState
                 icon={SearchX}
                 title="Couldn't load vehicles"
@@ -273,6 +320,15 @@ export default function ExploreScreen() {
         />
       )}
 
+      <OptionSheet
+        visible={sorting}
+        title="Sort by"
+        options={SORT_OPTIONS}
+        value={filters.sortBy}
+        onSelect={(sortBy) => setFilters({ ...filters, sortBy })}
+        onClose={() => setSorting(false)}
+      />
+
       <TownPicker
         visible={pickingTown}
         title="Search near"
@@ -289,6 +345,11 @@ export default function ExploreScreen() {
     </Screen>
   );
 }
+
+const SORT_OPTIONS: { value: SortBy; label: string; description: string }[] = [
+  { value: 'nearest', label: 'Nearest first', description: 'Closest available vehicles at the top' },
+  { value: 'price', label: 'Lowest price', description: 'Cheapest price per day first' },
+];
 
 type Results = {
   key: string;
@@ -327,9 +388,20 @@ const styles = StyleSheet.create({
     height: 46,
     paddingHorizontal: 14,
     borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'transparent',
     backgroundColor: colors.background,
   },
-  searchInput: { flex: 1, fontSize: 15, color: colors.ink, minWidth: 0 },
+  searchFocused: { borderColor: colors.primary, backgroundColor: colors.white },
+  searchInput: { flex: 1, alignSelf: 'stretch', fontSize: 15, color: colors.ink, minWidth: 0 },
+  clear: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.muted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   filterButton: {
     width: 46,
     height: 46,
@@ -353,7 +425,7 @@ const styles = StyleSheet.create({
   badgeText: { color: colors.white, fontSize: 11, fontWeight: font.bold },
   resultsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   count: { fontSize: 14, fontWeight: font.semibold, color: colors.ink },
-  sort: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  sort: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   sortText: { fontSize: 14, fontWeight: font.semibold, color: colors.primary },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   muted: { fontSize: 14, color: colors.text2 },

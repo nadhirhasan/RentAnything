@@ -100,7 +100,8 @@ const num = (s: string): number | null => {
   const digits = s.replace(/[^0-9]/g, '');
   return digits ? Number(digits) : null;
 };
-const text = (n: number | null | undefined) => (n == null ? '' : String(n));
+// Amounts are shown with thousands separators, as the form formats them while typing.
+const text = (n: number | null | undefined) => (n == null ? '' : n.toLocaleString('en-US'));
 
 export function suggestTitle(f: Pick<FormState, 'vehicle_type' | 'make' | 'model' | 'seats' | 'double_seat' | 'has_ac'>) {
   const name = [f.make.trim(), f.model.trim()].filter(Boolean).join(' ');
@@ -196,7 +197,7 @@ export function fromListing(l: MyListing): FormState {
     vehicle_type: v.vehicle_type,
     make: v.make,
     model: v.model,
-    year: text(v.year),
+    year: v.year == null ? '' : String(v.year),
     seats: v.seats,
     double_seat: v.double_seat,
     has_ac: v.has_ac,

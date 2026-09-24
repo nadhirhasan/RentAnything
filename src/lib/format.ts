@@ -76,3 +76,37 @@ export function base64ToBytes(b64: string): Uint8Array {
   }
   return out.subarray(0, i);
 }
+
+// Formats an amount as the user types: "12000" -> "12,000". Keeps only digits.
+export function formatAmountInput(text: string): string {
+  const digits = text.replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '').slice(0, 9);
+  return digits ? Number(digits).toLocaleString('en-US') : '';
+}
+
+export function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+}
+
+export const MIN_PASSWORD_LENGTH = 8;
+
+// Returns a problem with the password, or null if it's acceptable.
+export function passwordProblem(password: string): string | null {
+  if (password.length < MIN_PASSWORD_LENGTH) return `Use at least ${MIN_PASSWORD_LENGTH} characters`;
+  if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) return 'Use both letters and numbers';
+  return null;
+}
+
+// Sri Lankan phone numbers: 10 digits starting with 0 (077 123 4567), or
+// +94 followed by 9 digits.
+export function isValidLKPhone(phone: string): boolean {
+  const digits = phone.replace(/[\s-]/g, '');
+  return /^0\d{9}$/.test(digits) || /^\+?94\d{9}$/.test(digits);
+}
+
+// "0771234567" -> "077 123 4567" (leaves other formats alone).
+export function formatLKPhone(phone: string): string {
+  const digits = phone.replace(/[^0-9]/g, '');
+  const local = digits.startsWith('94') && digits.length === 11 ? `0${digits.slice(2)}` : digits;
+  if (/^0\d{9}$/.test(local)) return `${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}`;
+  return phone.trim();
+}

@@ -1,10 +1,12 @@
 // Shared UI pieces matching the Figma design (Button, Chip, Tag, Toggle,
 // Field, Segmented, Section...).
 import type { LucideIcon } from 'lucide-react-native';
-import { Minus, Plus } from 'lucide-react-native';
-import type { ReactNode } from 'react';
+import { Eye, EyeOff, Minus, Plus, X } from 'lucide-react-native';
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -12,6 +14,7 @@ import {
   View,
   type StyleProp,
   type TextInputProps,
+  type TextStyle,
   type ViewStyle,
 } from 'react-native';
 
@@ -187,39 +190,110 @@ export function Field({
   prefix,
   suffix,
   error,
+  hint,
   multiline,
+  password,
+  clearable,
+  inputRef,
   style,
+  onFocus,
+  onBlur,
   ...input
 }: TextInputProps & {
   label?: string;
   prefix?: string;
   suffix?: string;
   error?: string | null;
+  hint?: string;
+  // Password field with a show / hide button.
+  password?: boolean;
+  // Shows an × button that clears the value.
+  clearable?: boolean;
+  inputRef?: RefObject<TextInput | null>;
   style?: StyleProp<ViewStyle>;
 }) {
+  const ownRef = useRef<TextInput>(null);
+  const ref = inputRef ?? ownRef;
+  const [focused, setFocused] = useState(false);
+  const [hidden, setHidden] = useState(true);
+  const hasValue = Boolean(input.value);
+
   return (
     <View style={[{ gap: 6 }, style]}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
-      <View
+      {/* The whole box focuses the input, not just the text area. */}
+      <Pressable
+        onPress={() => ref.current?.focus()}
+        accessible={false}
         style={[
           styles.input,
-          multiline && { height: 96, alignItems: 'flex-start', paddingTop: 12 },
-          error ? { borderColor: colors.danger } : null,
+          multiline && styles.inputMultiline,
+          focused && styles.inputFocused,
+          error ? styles.inputError : null,
+          input.editable === false && { backgroundColor: colors.background },
         ]}>
         {prefix ? <Text style={styles.affix}>{prefix}</Text> : null}
         <TextInput
+          ref={ref}
           placeholderTextColor={colors.muted}
           multiline={multiline}
-          style={[styles.inputText, multiline && { height: '100%', textAlignVertical: 'top' }]}
+          secureTextEntry={password ? hidden : input.secureTextEntry}
+          autoCapitalize={password ? 'none' : input.autoCapitalize}
+          autoCorrect={password ? false : input.autoCorrect}
           accessibilityLabel={label}
+          onFocus={(e) => {
+            setFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            onBlur?.(e);
+          }}
+          style={[styles.inputText, multiline && styles.inputTextMultiline, webNoOutline]}
           {...input}
         />
+        {clearable && hasValue && input.editable !== false ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Clear ${label ?? 'text'}`}
+            hitSlop={10}
+            onPress={() => {
+              input.onChangeText?.('');
+              ref.current?.focus();
+            }}
+            style={styles.clear}>
+            <X size={14} color={colors.white} strokeWidth={3} />
+          </Pressable>
+        ) : null}
         {suffix ? <Text style={styles.affix}>{suffix}</Text> : null}
-      </View>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+        {password ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={hidden ? 'Show password' : 'Hide password'}
+            hitSlop={10}
+            onPress={() => setHidden((h) => !h)}>
+            {hidden ? <Eye size={20} color={colors.text2} /> : <EyeOff size={20} color={colors.text2} />}
+          </Pressable>
+        ) : null}
+      </Pressable>
+      {error ? (
+        <Text style={styles.error}>{error}</Text>
+      ) : hint ? (
+        <Text style={styles.hint}>{hint}</Text>
+      ) : null}
     </View>
   );
 }
+
+// Browsers draw their own focus box inside the field; we show focus on the
+// field's border instead. Chrome's default outline style is "auto", which
+// ignores outline-width, so the style itself must be "none" (react-native-web
+// passes it straight to CSS; React Native's types only list solid/dotted/dashed).
+export const webNoOutline: TextStyle | null =
+  Platform.OS === 'web' ? ({ outlineStyle: 'none', outlineWidth: 0 } as unknown as TextStyle) : null;
+
+// The native animation driver doesn't exist on web; it falls back with a warning.
+export const nativeDriver = Platform.OS !== 'web';
 
 export function Segmented<T extends string | number | boolean | null>({
   options,
@@ -381,6 +455,22 @@ export function KeyValue({ label, value, sub }: { label: string; value: string; 
   );
 }
 
+// Grey placeholder block that gently pulses while content loads.
+export function Skeleton({ style }: { style?: StyleProp<ViewStyle> }) {
+  const [opacity] = useState(() => new Animated.Value(0.55));
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: nativeDriver }),
+        Animated.timing(opacity, { toValue: 0.55, duration: 700, useNativeDriver: nativeDriver }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [opacity]);
+  return <Animated.View style={[{ backgroundColor: colors.border, borderRadius: radius.sm, opacity }, style]} />;
+}
+
 export function Divider() {
   return <View style={{ height: 1, backgroundColor: colors.border }} />;
 }
@@ -456,7 +546,30 @@ export const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.white,
   },
-  inputText: { flex: 1, fontSize: 15, color: colors.ink, minWidth: 0 },
+  inputMultiline: { height: 112, alignItems: 'flex-start', paddingVertical: 12 },
+  inputFocused: {
+    borderColor: colors.primary,
+    boxShadow: '0 0 0 3px rgba(29, 78, 216, 0.15)',
+  },
+  inputError: { borderColor: colors.danger },
+  inputText: {
+    flex: 1,
+    alignSelf: 'stretch',
+    fontSize: 15,
+    color: colors.ink,
+    minWidth: 0,
+    paddingVertical: 0,
+  },
+  inputTextMultiline: { textAlignVertical: 'top' },
+  clear: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.muted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hint: { fontSize: 12, color: colors.muted, lineHeight: 17 },
   affix: { fontSize: 15, color: colors.muted, fontWeight: font.medium },
   error: { fontSize: 12, color: colors.danger },
   segmented: {

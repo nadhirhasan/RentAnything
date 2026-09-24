@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { RoundIconButton } from '@/components/ui';
+import { RoundIconButton, webNoOutline } from '@/components/ui';
 import { searchTowns, type Town } from '@/lib/towns';
 import { colors, font, maxContentWidth, radius } from '@/theme';
 
@@ -41,7 +41,7 @@ export function TownPicker({
               onChangeText={setQuery}
               placeholder="Search town or district"
               placeholderTextColor={colors.muted}
-              style={{ flex: 1, fontSize: 15, color: colors.ink }}
+              style={[{ flex: 1, alignSelf: 'stretch', fontSize: 15, color: colors.ink }, webNoOutline]}
               autoFocus
               accessibilityLabel="Search town or district"
             />
