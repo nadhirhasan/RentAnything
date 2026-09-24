@@ -1,0 +1,78 @@
+// Formatting and small parsing helpers. No imports, so they're testable with `node --test`.
+
+export function formatLKR(amount: number): string {
+  return `Rs ${Math.round(amount).toLocaleString('en-US')}`;
+}
+
+export function formatKm(km: number): string {
+  return `${Math.round(km).toLocaleString('en-US')} km`;
+}
+
+export function formatDistance(km: number | null | undefined): string | null {
+  if (km == null) return null;
+  if (km < 1) return `${Math.max(100, Math.round(km * 10) * 100)} m away`;
+  return `${km < 10 ? km.toFixed(1) : Math.round(km)} km away`;
+}
+
+// Parses a user-typed amount like "12,000" or "Rs 12000". Empty -> null.
+export function parseAmount(text: string): number | null {
+  const digits = text.replace(/[^0-9]/g, '');
+  if (!digits) return null;
+  const n = Number(digits);
+  return Number.isSafeInteger(n) ? n : null;
+}
+
+// Local Sri Lankan numbers (077 123 4567) to international digits for
+// wa.me / tel: links (94771234567).
+export function toInternationalLK(phone: string): string {
+  let digits = phone.replace(/[^0-9]/g, '');
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  if (digits.startsWith('0')) digits = `94${digits.slice(1)}`;
+  if (digits.length === 9) digits = `94${digits}`;
+  return digits;
+}
+
+export function whatsappUrl(phone: string, message: string): string {
+  return `https://wa.me/${toInternationalLK(phone)}?text=${encodeURIComponent(message)}`;
+}
+
+export function telUrl(phone: string): string {
+  return `tel:+${toInternationalLK(phone)}`;
+}
+
+// YYYY-MM-DD for a date `daysFromToday` days after today in Sri Lanka time.
+export function colomboDate(daysFromToday = 0, now: Date = new Date()): string {
+  const colomboOffsetMs = (5 * 60 + 30) * 60 * 1000;
+  const d = new Date(now.getTime() + colomboOffsetMs + daysFromToday * 86_400_000);
+  return d.toISOString().slice(0, 10);
+}
+
+export function formatDateShort(isoDate: string): string {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  return date.toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  });
+}
+
+// Standard base64 -> bytes (for uploading picked photos to Storage).
+export function base64ToBytes(b64: string): Uint8Array {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  const clean = b64.replace(/[^A-Za-z0-9+/]/g, '');
+  const out = new Uint8Array(Math.floor((clean.length * 3) / 4));
+  let buffer = 0;
+  let bits = 0;
+  let i = 0;
+  for (const ch of clean) {
+    buffer = (buffer << 6) | alphabet.indexOf(ch);
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      out[i++] = (buffer >> bits) & 0xff;
+    }
+  }
+  return out.subarray(0, i);
+}
