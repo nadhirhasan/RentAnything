@@ -286,8 +286,14 @@ export function Field({
 }
 
 // Browsers draw their own focus box inside the field; we show focus on the
-// field's border instead.
-export const webNoOutline: TextStyle | null = Platform.OS === 'web' ? { outlineWidth: 0 } : null;
+// field's border instead. Chrome's default outline style is "auto", which
+// ignores outline-width, so the style itself must be "none" (react-native-web
+// passes it straight to CSS; React Native's types only list solid/dotted/dashed).
+export const webNoOutline: TextStyle | null =
+  Platform.OS === 'web' ? ({ outlineStyle: 'none', outlineWidth: 0 } as unknown as TextStyle) : null;
+
+// The native animation driver doesn't exist on web; it falls back with a warning.
+export const nativeDriver = Platform.OS !== 'web';
 
 export function Segmented<T extends string | number | boolean | null>({
   options,
@@ -455,8 +461,8 @@ export function Skeleton({ style }: { style?: StyleProp<ViewStyle> }) {
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0.55, duration: 700, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: nativeDriver }),
+        Animated.timing(opacity, { toValue: 0.55, duration: 700, useNativeDriver: nativeDriver }),
       ]),
     );
     loop.start();

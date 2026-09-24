@@ -13,6 +13,7 @@ import {
 import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { nativeDriver } from '@/components/ui';
 import { colors, font, radius } from '@/theme';
 
 type Tone = 'success' | 'error' | 'info';
@@ -107,9 +108,9 @@ function ToastView({ toast, onDone }: { toast: Toast; onDone: () => void }) {
 
   useEffect(() => {
     const seq = Animated.sequence([
-      Animated.timing(anim, { toValue: 1, duration: 180, useNativeDriver: true }),
+      Animated.timing(anim, { toValue: 1, duration: 180, useNativeDriver: nativeDriver }),
       Animated.delay(toast.tone === 'error' ? 3500 : 2200),
-      Animated.timing(anim, { toValue: 0, duration: 180, useNativeDriver: true }),
+      Animated.timing(anim, { toValue: 0, duration: 180, useNativeDriver: nativeDriver }),
     ]);
     seq.start(({ finished }) => finished && onDone());
     return () => seq.stop();
@@ -117,7 +118,6 @@ function ToastView({ toast, onDone }: { toast: Toast; onDone: () => void }) {
 
   return (
     <Animated.View
-      pointerEvents="none"
       accessibilityLiveRegion="polite"
       accessibilityRole="alert"
       style={[
@@ -144,7 +144,7 @@ export function useFeedback() {
 }
 
 const styles = StyleSheet.create({
-  toastWrap: { position: 'absolute', left: 16, right: 16, alignItems: 'center' },
+  toastWrap: { position: 'absolute', left: 16, right: 16, alignItems: 'center', pointerEvents: 'none' },
   toast: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -154,11 +154,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: radius.md,
     backgroundColor: colors.ink,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
   },
   toastText: { flexShrink: 1, color: colors.white, fontSize: 14, fontWeight: font.medium },
   backdrop: {
