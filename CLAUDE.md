@@ -10,8 +10,10 @@ decision changes.
 - Design: Figma file `YZJ5usF3xphGzmvqKj8pYv` ("RentAnything — App Design v1").
   The founder's Figma is on the Starter plan (~20 MCP calls / month), so batch
   Figma work into few calls.
-- Backend: Supabase. Schema, RLS and SQL functions live in
-  `supabase/migrations/`. Public reads go through `search_vehicles()` /
+- Backend: Supabase project `vqdngaqjrucwbmlwfcso` (RentAnything, ap-south-1).
+  Apply schema changes as a new file in `supabase/migrations/` and name the
+  file with the version Supabase records, so local and remote history match.
+  Schema, RLS and SQL functions live in `supabase/migrations/`. Public reads go through `search_vehicles()` /
   `get_vehicle()` (security definer; never expose exact location or phone).
   Owner phone numbers only come from `get_listing_contact()` (signed-in users).
 - Future categories (house rentals etc.) get their own `*_details` table next

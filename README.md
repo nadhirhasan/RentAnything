@@ -21,7 +21,11 @@ WhatsApp the owner.
 
 ## Getting started
 
-### 1. Create the Supabase project
+### 1. Supabase project
+
+The live project is **RentAnything** (ref `vqdngaqjrucwbmlwfcso`, region
+Mumbai `ap-south-1`) and already has both migrations applied. To set up a
+fresh project instead:
 
 1. Create a free project at [supabase.com](https://supabase.com).
 2. Apply the database schema. Either:
@@ -31,8 +35,8 @@ WhatsApp the owner.
      npx supabase link --project-ref <your-project-ref>
      npx supabase db push
      ```
-   - or paste `supabase/migrations/20260924000000_vehicle_listings.sql` into
-     the dashboard's **SQL Editor** and run it.
+   - or paste each file in `supabase/migrations/` (in order) into the
+     dashboard's **SQL Editor** and run it.
 3. In **Authentication → Providers**, make sure **Email** is enabled. For
    quick testing you can turn off **Confirm email**.
 
@@ -43,7 +47,8 @@ cp .env.example .env
 ```
 
 Fill in `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` from
-**Project Settings → API**.
+**Project Settings → API** (use the publishable key, `sb_publishable_…`).
+For the live project the URL is `https://vqdngaqjrucwbmlwfcso.supabase.co`.
 
 ### 3. Run it
 
