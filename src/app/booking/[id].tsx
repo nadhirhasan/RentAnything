@@ -1,4 +1,3 @@
-import { createURL } from 'expo-linking';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
   CalendarX,
@@ -61,9 +60,9 @@ import {
   type BookingDetail,
   type MyDues,
 } from '@/lib/bookings';
+import { openBookingChat } from '@/lib/chat';
 import { colomboDate, formatAmountInput, formatDateShort, formatLKR, parseAmount, telUrl, whatsappUrl } from '@/lib/format';
 import { friendlyError } from '@/lib/supabase';
-import { getOwnerContact } from '@/lib/vehicles';
 import { colors, font, maxContentWidth, radius } from '@/theme';
 
 type SheetKind = 'decline' | 'cancel' | 'no_deal' | null;
@@ -150,19 +149,11 @@ export default function BookingScreen() {
     }
   };
 
-  const remindOwner = async () => {
-    setBusy('remind');
+  const openChat = async () => {
+    setBusy('chat');
     try {
-      const c = await getOwnerContact(b.listing_id, 'whatsapp');
-      const number = c.whatsapp ?? c.phone;
-      if (!number) throw new Error('The owner has not added a phone number yet.');
-      const link = createURL(`/booking/${b.id}`);
-      await Linking.openURL(
-        whatsappUrl(
-          number,
-          `Hi! I sent you a booking request on RentAnything for your ${b.title}, ${formatRange(b.start_date, b.end_date)}. Please accept or decline it here: ${link}`,
-        ),
-      );
+      const chatId = await openBookingChat(b.id);
+      router.push({ pathname: '/chat/[id]', params: { id: chatId } });
     } catch (e) {
       toast(friendlyError(e), 'error');
     } finally {
@@ -354,6 +345,14 @@ export default function BookingScreen() {
           ) : b.state === 'requested' ? (
             <Text style={styles.sub}>Phone numbers are shared when the owner accepts.</Text>
           ) : null}
+          <Button
+            label={owner ? 'Message the customer' : 'Message the owner'}
+            kind="soft"
+            size="sm"
+            icon={MessageCircle}
+            loading={busy === 'chat'}
+            onPress={openChat}
+          />
         </Section>
 
         {/* Owner: rate the customer */}
@@ -424,13 +423,7 @@ export default function BookingScreen() {
         ) : owner && b.state === 'accepted' ? (
           <Button label="Start rental: enter code" icon={KeyRound} onPress={() => setStarting(true)} />
         ) : !owner && b.state === 'requested' ? (
-          <Button
-            label="Remind the owner on WhatsApp"
-            kind="whatsapp"
-            icon={MessageCircle}
-            loading={busy === 'remind'}
-            onPress={remindOwner}
-          />
+          <Button label="Message the owner" kind="soft" icon={MessageCircle} loading={busy === 'chat'} onPress={openChat} />
         ) : !owner && (b.state === 'declined' || b.state === 'expired' || b.state === 'cancelled' || b.state === 'no_deal') ? (
           <Button label="Find another vehicle" kind="soft" onPress={() => router.replace('/')} />
         ) : owner && (b.state === 'started' || b.state === 'completed') ? (

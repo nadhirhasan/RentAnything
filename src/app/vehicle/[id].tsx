@@ -10,7 +10,6 @@ import {
   Gauge,
   MapPin,
   MessageCircle,
-  Phone,
   Plus,
   Share2,
   Snowflake,
@@ -22,7 +21,6 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -56,7 +54,8 @@ import { VehiclePhoto } from '@/components/vehicle';
 import { useAuth } from '@/lib/auth';
 import { contactSupport, hasSupport } from '@/lib/support';
 import { LISTING_REPORT_REASONS, reportListing } from '@/lib/trust';
-import { formatDistance, formatKm, formatLKR, parseAmount, telUrl, whatsappUrl } from '@/lib/format';
+import { startConversation } from '@/lib/chat';
+import { formatDistance, formatKm, formatLKR, parseAmount } from '@/lib/format';
 import { useUserLocation } from '@/lib/location';
 import { estimateTrip } from '@/lib/pricing';
 import { friendlyError } from '@/lib/supabase';
@@ -64,11 +63,9 @@ import {
   DOCUMENTS,
   FUEL_POLICIES,
   FUEL_TYPES,
-  getOwnerContact,
   getVehicle,
   TRANSMISSIONS,
   vehicleTypeLabel,
-  type ContactChannel,
   type VehicleDetail,
 } from '@/lib/vehicles';
 import { colors, font, maxContentWidth, radius } from '@/theme';
@@ -99,38 +96,28 @@ export default function VehicleScreen() {
   const v = loading ? null : loaded.v;
   const error = loading ? null : loaded.error;
 
-  // Contact: sign-in is required. If the user isn't signed in we remember
+  // Message / Book need an account. If the user isn't signed in we remember
   // what they tapped and continue once they come back signed in.
-  const pending = useRef<ContactChannel | 'book' | null>(null);
-  const [contacting, setContacting] = useState<ContactChannel | null>(null);
+  const pending = useRef<'chat' | 'book' | null>(null);
+  const [opening, setOpening] = useState(false);
   const [contactError, setContactError] = useState<string | null>(null);
-  const [revealed, setRevealed] = useState<string | null>(null);
 
-  const contact = useCallback(async (channel: ContactChannel) => {
+  const message = useCallback(async () => {
     if (!v) return;
     if (!session) {
-      pending.current = channel;
-      router.push({ pathname: '/sign-in', params: { reason: 'contact' } });
+      pending.current = 'chat';
+      router.push({ pathname: '/sign-in', params: { reason: 'chat' } });
       return;
     }
-    setContacting(channel);
+    setOpening(true);
     setContactError(null);
     try {
-      const c = await getOwnerContact(v.id, channel);
-      const number = channel === 'whatsapp' ? c.whatsapp : c.phone;
-      if (!number) throw new Error('The owner has not added a phone number yet.');
-      setRevealed(number);
-      const url =
-        channel === 'whatsapp'
-          ? whatsappUrl(number, `Hi! I saw your ${v.title} on RentAnything. Is it available?`)
-          : telUrl(number);
-      await Linking.openURL(url).catch(() => {
-        // e.g. no phone app on desktop web; the number is shown instead.
-      });
+      const chatId = await startConversation(v.id);
+      router.push({ pathname: '/chat/[id]', params: { id: chatId } });
     } catch (e) {
       setContactError(friendlyError(e));
     } finally {
-      setContacting(null);
+      setOpening(false);
     }
   }, [v, session]);
 
@@ -148,9 +135,9 @@ export default function VehicleScreen() {
     const action = pending.current;
     if (session && action) {
       pending.current = null;
-      Promise.resolve().then(() => (action === 'book' ? book() : contact(action)));
+      Promise.resolve().then(() => (action === 'book' ? book() : message()));
     }
-  }, [session, contact, book]);
+  }, [session, message, book]);
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -401,14 +388,6 @@ export default function VehicleScreen() {
       <View style={[styles.contactBar, { paddingBottom: Math.max(16, insets.bottom + 8) }]}>
         <View style={styles.contactInner}>
           {contactError ? <Notice icon={CircleAlert} tone="danger" text={contactError} /> : null}
-          {revealed ? (
-            <View style={[styles.row, { justifyContent: 'center' }]}>
-              <Phone size={14} color={colors.text2} />
-              <Text style={styles.sub} selectable>
-                Owner&apos;s number: {revealed}
-              </Text>
-            </View>
-          ) : null}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <View style={{ flexShrink: 1, minWidth: 84 }}>
               <Text style={styles.barPrice} numberOfLines={1}>
@@ -416,23 +395,14 @@ export default function VehicleScreen() {
               </Text>
               <Text style={styles.barPer}>per day</Text>
             </View>
-            <IconAction
+            <Button
+              label="Message"
+              kind="soft"
               icon={MessageCircle}
-              label="WhatsApp the owner"
-              background={colors.whatsapp}
-              color={colors.white}
-              loading={contacting === 'whatsapp'}
-              disabled={!v.is_live}
-              onPress={() => contact('whatsapp')}
-            />
-            <IconAction
-              icon={Phone}
-              label="Call the owner"
-              background={colors.primary50}
-              color={colors.primary}
-              loading={contacting === 'call'}
-              disabled={!v.is_live}
-              onPress={() => contact('call')}
+              style={styles.barButton}
+              loading={opening}
+              disabled={!v.is_live || v.is_mine}
+              onPress={message}
             />
             <Button
               label="Book"
@@ -592,39 +562,6 @@ function TripEstimate({ v }: { v: VehicleDetail }) {
   );
 }
 
-function IconAction({
-  icon: Icon,
-  label,
-  background,
-  color,
-  loading,
-  disabled,
-  onPress,
-}: {
-  icon: LucideIcon;
-  label: string;
-  background: string;
-  color: string;
-  loading?: boolean;
-  disabled?: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled: disabled || loading }}
-      disabled={disabled || loading}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.iconAction,
-        { backgroundColor: background, opacity: disabled ? 0.5 : pressed ? 0.85 : 1 },
-      ]}>
-      {loading ? <ActivityIndicator color={color} /> : <Icon size={22} color={color} />}
-    </Pressable>
-  );
-}
-
 function SpecTile({ icon: Icon, value, label }: { icon: LucideIcon; value: string; label: string }) {
   return (
     <View style={styles.tile}>
@@ -722,7 +659,6 @@ const styles = StyleSheet.create({
   barPrice: { fontSize: 17, fontWeight: font.bold, color: colors.ink },
   barPer: { fontSize: 12, color: colors.muted },
   barButton: { flex: 1, paddingHorizontal: 10 },
-  iconAction: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
   counter: {
     position: 'absolute',
     right: 16,

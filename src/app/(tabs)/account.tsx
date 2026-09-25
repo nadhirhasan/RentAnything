@@ -22,6 +22,7 @@ import { Button, Card, Divider, Field, Notice, Skeleton, ToggleRow } from '@/com
 import { VehiclePhoto } from '@/components/vehicle';
 import { useAuth, type Profile } from '@/lib/auth';
 import { formatLKPhone, isValidLKPhone } from '@/lib/format';
+import { unregisterPush } from '@/lib/push';
 import { friendlyError, supabase } from '@/lib/supabase';
 import { contactSupport, hasSupport } from '@/lib/support';
 import { deleteMyAccount, getReviewInvites, type ReviewInvite } from '@/lib/trust';
@@ -54,6 +55,7 @@ export default function AccountScreen() {
       destructive: true,
     });
     if (!ok) return;
+    await unregisterPush();
     await supabase.auth.signOut();
     toast('Signed out', 'info');
   };

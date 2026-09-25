@@ -60,6 +60,34 @@ npm run web        # in the browser
 npm start          # then scan the QR code with Expo Go on your phone
 ```
 
+### 4. Push notifications (phone builds)
+
+Chat messages and booking updates are sent as push notifications. Expo Go
+can't receive them, so you need a development build of the app. You set this
+up once:
+
+1. **Link an Expo project.** Run `npx eas-cli@latest login`, then
+   `npx eas-cli@latest init`. This adds `extra.eas.projectId` to `app.json`;
+   commit that change.
+2. **Android (Firebase).**
+   1. In the [Firebase console](https://console.firebase.google.com), create a
+      project and add an Android app with package `lk.rentanything.app`.
+   2. Download `google-services.json` into the project root, then add
+      `"googleServicesFile": "./google-services.json"` under `android` in
+      `app.json`.
+   3. In Firebase → Project settings → Service accounts, generate a private
+      key. Upload it with `npx eas-cli@latest credentials` → Android →
+      production → Google Service Account → FCM V1.
+3. **Build and install.** Run
+   `npx eas-cli@latest build --profile development --platform android` and
+   install the APK from the link. Then run `npx expo start --dev-client` and
+   open the app. It asks for notification permission after your first
+   message, booking request or new listing.
+4. **iOS.** This needs an Apple Developer account. `eas build` creates the
+   push key for you.
+
+The web app has no push notifications. It shows unread badges instead.
+
 ### Local Supabase (optional)
 
 With Docker installed, `npx supabase start` runs the whole backend locally and
@@ -72,7 +100,7 @@ by `demo@rentanything.lk` / `password123`.
 npm run typecheck   # TypeScript
 npm run lint        # ESLint (Expo config)
 npm test            # unit tests: pricing, formatting, listing form
-npm run test:db     # database tests: RLS, search, contact gate (needs local Postgres + PostGIS)
+npm run test:db     # database tests: RLS, search, bookings, chat (needs local Postgres + PostGIS)
 ```
 
 ## Project layout

@@ -43,7 +43,7 @@ export default function DeleteAccountScreen() {
       <H>What is deleted</H>
       <Li>Your profile: name, email, phone and WhatsApp numbers.</Li>
       <Li>All your vehicle listings and their photos.</Li>
-      <Li>Your reviews, feedback, reports and contact history.</Li>
+      <Li>Your messages, reviews, feedback, reports and contact history.</Li>
       <P>Everything is deleted straight away. Backups are overwritten within 30 days.</P>
       <H>How to delete</H>
       <Li>In the app: Account → Delete account.</Li>

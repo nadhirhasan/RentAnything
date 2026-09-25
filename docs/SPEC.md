@@ -22,8 +22,8 @@ In scope:
 - Per-vehicle **availability switch** (off = hidden from the feed, no unwanted calls).
 - Customers browse without an account, filter, and see results **sorted by distance**
   from their GPS location.
-- **Call** / **WhatsApp** the owner. Signing in is required before the phone number is
-  revealed.
+- **Message** the owner in the app (signing in required). Phone numbers are shared
+  once the owner accepts a booking (§13; this replaced Call / WhatsApp on the listing).
 
 Out of scope for v1 (possible later):
 
@@ -41,7 +41,7 @@ One account type. Anyone can browse; any signed-in user can also list vehicles
 | Who | Can do |
 | --- | --- |
 | Visitor (not signed in) | Browse feed, filter, open listings, see price estimate |
-| Signed-in user | Everything above + reveal owner phone, call, WhatsApp |
+| Signed-in user | Everything above + message owners, book; phone numbers after an accepted booking |
 | Owner (signed-in user with listings) | Add / edit / delete vehicles, flip availability, set driver option |
 | Admin | Hide any listing |
 
@@ -131,17 +131,14 @@ Photos, key specs, full pricing table, long-term offers, driver / self-drive, te
 town + distance, and a **trip estimate**: pick number of days and expected km → total
 (days × rate or the cheaper weekly / monthly offer, + driver, + extra km).
 
-Sticky **Call** and **WhatsApp** buttons. If not signed in, tapping either opens the
-sign-in sheet; after signing in the app returns to the listing and continues the call /
-WhatsApp automatically. The number is also shown on screen (useful on desktop).
-WhatsApp opens with a pre-filled message: "Hi! I saw your <vehicle> on RentAnything.
-Is it available?".
+Sticky **Message** and **Book** buttons. If not signed in, tapping either opens the
+sign-in sheet; after signing in the app returns to the listing and continues
+automatically. (Until §13 these were Call / WhatsApp buttons that revealed the number.)
 
 ## 6. Accounts
 
 - Customers browse without signing in.
-- Sign-in required to reveal an owner's phone number (Call / WhatsApp) and to list a
-  vehicle.
+- Sign-in required to message or book an owner and to list a vehicle.
 - v1: **email + password**. Google sign-in next (needs Google Cloud OAuth credentials),
   phone OTP later.
 - Sign up asks for name, email, password and **confirm password**. Passwords need at
@@ -215,15 +212,21 @@ owner_ledger     id, owner_id, kind (commission / payment / adjustment), amount,
                  booking_id, payment_id, note
 dues_payments    id, owner_id, amount, method, reference, status (pending / approved / rejected)
 app_settings     commission_percent, dues_limit, dues_days, payment_details (one row)
+conversations    id, listing_id, owner_id, customer_id, last_message(_at), last_sender_id,
+                 owner_read_at, customer_read_at, blocked_by
+messages         id, conversation_id, sender_id (null = system), kind, body, masked, booking_id
+conversation_reports  id, conversation_id, reporter_id, reason, note, status
+admin_chat_access     id, admin_id, conversation_id, created_at
+push_tokens      token, user_id, platform
 ```
 
 Listings also have `hidden_reason` ('reports' / 'admin') and `hidden_at`.
 
 - `search_vehicles(lat, lng, filters…)` — Postgres function, returns live listings
   ordered by distance.
-- `get_listing_contact(listing_id)` — returns the owner's phone / WhatsApp **only to
-  signed-in users** and logs a `contact_events` row (lets us show owners "12 people
-  contacted you this week" later).
+- `get_listing_contact(listing_id)` — returns the owner's phone / WhatsApp only after
+  the owner accepted a booking from the caller (§13), and logs a `contact_events` row.
+  Sending a chat message also logs one (at most once a day).
 - A listing is **live** when: not hidden AND (`is_available` OR
   `available_again_on <= today`) AND its owner isn't restricted for unpaid fees (§12.3).
 
@@ -233,8 +236,8 @@ Customer:
 
 1. **Explore** — location bar, type chips, filter button, results list.
 2. **Filters** — bottom sheet.
-3. **Listing** — details, trip estimate, Call / WhatsApp, Book.
-4. **Sign in / Sign up** — sheet shown on Call / WhatsApp, Book or List a vehicle.
+3. **Listing** — details, trip estimate, Message, Book.
+4. **Sign in / Sign up** — sheet shown on Message, Book or List a vehicle.
 5. **Request to book** and **Bookings** tab (My trips / Requests) — see §12.
 
 Owner:
@@ -245,6 +248,7 @@ Owner:
 8. **Account** — name, phone, WhatsApp, sign out.
 9. **Booking** (accept / decline, handover code) and **Payments to RentAnything**
    (balance, how to pay, "I've paid") — see §12.
+10. **Messages** tab and **Chat** (both roles) — see §13.
 
 ## 10. Status
 
@@ -257,6 +261,7 @@ Built in v1 (September 2026):
   account deletion, contact limit, photo compression, app icon.
 - Bookings and owner fees (section 12): booking requests, handover code, owner
   balance and payments, restrictions, disputes, admin settings.
+- Chat and push notifications (section 13).
 
 Differences from the Figma design:
 
@@ -287,7 +292,8 @@ Decided with the founder on 25 September 2026.
 
 Spam protection: we can't know if a hire happened, so reviews are tied to contacts.
 
-- Only a user who tapped Call / WhatsApp on the listing can review it, from **1 day
+- Only a user who contacted the owner (tapped Call / WhatsApp before §13, now: sent a
+  chat message) can review it, from **1 day
   to 60 days** after the contact. One review per user per listing.
 - When the owner switches a vehicle off they're asked **"Who rented it?"** (people
   who contacted them in the last 14 days). A confirmed hire (within 30 days) gives
@@ -322,7 +328,7 @@ control honesty; we make the honest path the easiest one.
 1. **Request** — the customer picks a start day and number of days (at least the
    vehicle's minimum), self-drive / with driver, and an optional message. The app
    shows the estimated price (same maths as the trip estimate). A phone number is
-   required. Call / WhatsApp still work for questions.
+   required. Questions go through chat (§13).
    Limits: 3 open requests at a time, 10 a day, one open booking per vehicle.
 2. **Accept / decline** — the owner sees the customer's summary (member since,
    rentals, rating from owners, no-shows, cancellations) and accepts or declines
@@ -369,12 +375,37 @@ calls both and either charges the fee on the listed price or dismisses it.
 
 ### 12.5 Not yet
 
-No push notifications: the Bookings tab shows a badge (checked every minute), and
-customers can remind the owner on WhatsApp with a link to the request. Online
-payments (PayHere) and deposits can be added later on top of this flow.
+Online payments (PayHere) and deposits can be added later on top of this flow.
 
-## 13. Later
+## 13. Chat and notifications
 
-Verification badges, push notifications for bookings, online payments (PayHere),
+Decided with the founder on 25 September 2026. Like Upwork, customers and owners talk
+inside the app, so RentAnything has a record when there's a dispute and a signal for
+deals made outside the app. It's still a guess; we can't control honesty.
+
+- **Chat replaces Call / WhatsApp on the listing.** One conversation per customer per
+  vehicle. Booking updates (requested, accepted, declined, started, cancelled, no deal)
+  appear in it as messages from RentAnything.
+- **Phone numbers only after an accepted booking.** Before that, phone numbers (9+
+  digits), emails and links typed in chat are replaced with "•••" and both sides see
+  a note. After the owner accepts, the chat header and booking page show the number
+  with Call / WhatsApp buttons.
+- **Privacy.** Only the two people can read a chat. RentAnything admins can open a chat
+  only when it's reported or part of a booking dispute; every read is logged
+  (`admin_chat_access`). Written in the privacy policy.
+- **Safety.** Report a chat (reasons: scam, rude / unsafe, offensive, other) and block
+  it (only the blocker can unblock). Admins can dismiss reports or block the chat.
+  Limits: 30 new conversations a day, 60 messages per 10 minutes.
+- **Unread** counts on a Messages tab (live via Supabase Realtime) and "Seen" under
+  your last message.
+- **Push notifications** (Android / iOS builds, not Expo Go or web) for new messages,
+  booking updates and payment answers. Sent from the database through Expo's push
+  service with pg_net. The app asks for permission after the first message, booking
+  request or new listing; the Messages tab offers to turn them on. Tapping one opens
+  the chat, booking or payments page. Setup: README → Push notifications.
+
+## 14. Later
+
+Verification badges, online payments (PayHere),
 featured listings for owners, Sinhala / Tamil, phone OTP login, house rentals and
 other categories.

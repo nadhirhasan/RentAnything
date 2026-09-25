@@ -42,6 +42,16 @@ export function friendlyError(error: unknown): string {
       ? String((error as { message: unknown }).message)
       : String(error);
   if (message.includes('sign_in_required')) return 'Please sign in first.';
+  if (message.includes('contact_after_booking'))
+    return "The owner's number is shared when they accept your booking. Send a message or a booking request.";
+  if (message.includes('conversation_own_listing')) return "You can't message yourself about your own vehicle.";
+  if (message.includes('conversation_not_found')) return 'Chat not found.';
+  if (message.includes('conversation_blocked')) return 'This chat is blocked.';
+  if (message.includes('message_invalid')) return 'Write a message first.';
+  if (message.includes('message_limit')) return "You're sending messages very fast. Please wait a few minutes.";
+  if (message.includes('chat_access_denied'))
+    return 'Chats can only be opened when they are reported or part of a dispute.';
+  if (message.includes('push_token_invalid')) return "Couldn't turn on notifications on this device.";
   if (message.includes('booking_needs_phone'))
     return 'Add your phone number so the owner can call you.';
   if (message.includes('booking_own_listing')) return "You can't book your own vehicle.";

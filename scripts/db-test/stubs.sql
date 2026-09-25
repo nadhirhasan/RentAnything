@@ -49,3 +49,18 @@ create function storage.foldername(name text) returns text[] language sql immuta
 $$;
 grant usage on schema storage to authenticated;
 grant insert on storage.objects to authenticated;
+
+-- pg_net: record requests instead of sending them.
+create schema net;
+create table net.test_requests (
+  id bigserial primary key, url text, body jsonb, headers jsonb, created_at timestamptz default now()
+);
+create function net.http_post(
+  url text,
+  body jsonb default '{}'::jsonb,
+  params jsonb default '{}'::jsonb,
+  headers jsonb default '{"Content-Type": "application/json"}'::jsonb,
+  timeout_milliseconds integer default 5000
+) returns bigint language sql as $$
+  insert into net.test_requests (url, body, headers) values (url, body, headers) returning id
+$$;

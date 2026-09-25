@@ -24,8 +24,15 @@ export default function PrivacyScreen() {
         nearest vehicles. It is sent with each search and is not stored in your account.
       </Li>
       <Li>
-        <B>Contact history:</B> when you tap Call or WhatsApp we record which listing you contacted and when. This
-        lets owners confirm who rented from them and decides who can leave a review.
+        <B>Messages:</B> the chats between customers and owners, and when they were read.
+      </Li>
+      <Li>
+        <B>Contact history:</B> when you message an owner we record which listing you contacted and when. This lets
+        owners confirm who rented from them and decides who can leave a review.
+      </Li>
+      <Li>
+        <B>Your device:</B> if you allow notifications, a push token for your phone so we can tell you about new
+        messages and bookings.
       </Li>
       <Li>
         <B>Bookings:</B> the dates, driver option, your message to the owner, the agreed price, what happened at
@@ -53,7 +60,8 @@ export default function PrivacyScreen() {
         and reviews showing the reviewer&apos;s first name and last initial.
       </Li>
       <Li>
-        <B>Signed-in users who tap Call or WhatsApp:</B> the owner&apos;s phone / WhatsApp number.
+        <B>Phone numbers</B> are only shown once an owner accepts a booking, and only to the two people in that
+        booking. Before that, phone numbers, emails and links typed in a chat are hidden.
       </Li>
       <Li>
         <B>Owners:</B> the names of people who contacted them about a listing in the last 14 days, to confirm who
@@ -66,6 +74,17 @@ export default function PrivacyScreen() {
       </Li>
       <Li>Reports are private. Owners never see who reported them.</Li>
 
+      <H>Who can read your messages</H>
+      <Li>The two people in the chat.</Li>
+      <Li>
+        RentAnything staff, <B>only</B> when someone in the chat reports it or a booking between you is disputed, to
+        check what happened. Each time staff open a chat, it is logged. We don&apos;t read other chats.
+      </Li>
+      <Li>
+        Notifications are delivered through Expo&apos;s push service and Google or Apple, and show the start of the
+        message.
+      </Li>
+
       <H>Where your data is stored</H>
       <P>
         Our database, login and photo storage are provided by Supabase and hosted in Mumbai, India. Supabase
@@ -75,7 +94,8 @@ export default function PrivacyScreen() {
       <H>How long we keep it</H>
       <P>
         We keep your information while your account is open. When you delete your account we delete your profile,
-        listings, photos, reviews and contact history straight away. Backups are overwritten within 30 days.
+        listings, photos, reviews, messages and contact history straight away. Backups are overwritten within 30
+        days.
       </P>
 
       <H>Your rights</H>

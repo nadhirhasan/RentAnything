@@ -69,11 +69,16 @@ export default function TermsScreen() {
       <Li>Fake, misleading or duplicate listings, or vehicles that are stolen or not road-legal.</Li>
       <Li>Collecting owners&apos; numbers in bulk, spam, or using the service for anything illegal.</Li>
       <Li>Harassing or threatening other users.</Li>
+      <Li>
+        Sharing phone numbers or links in chat to get around bookings, or asking for money before the other person
+        has seen the vehicle.
+      </Li>
 
       <H>Moderation</H>
       <P>
-        We may hide or remove listings and reviews, and suspend accounts, that break these terms. Listings reported
-        by several people may be hidden automatically until we check them.
+        We may hide or remove listings and reviews, block chats, and suspend accounts that break these terms.
+        Listings reported by several people may be hidden automatically until we check them. When a chat is
+        reported or a booking is disputed, we may read that chat to decide.
       </P>
 
       <H>Our liability</H>
