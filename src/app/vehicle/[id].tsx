@@ -556,7 +556,8 @@ function TripEstimate({ v }: { v: VehicleDetail }) {
       <Text style={styles.note}>
         {e.freeKm == null ? 'Unlimited km. ' : `${formatKm(e.freeKm)} free for ${e.days} days. `}
         {e.minDaysApplied ? `Minimum hire is ${v.min_days} days. ` : ''}
-        Final price is agreed with the owner.
+        Days run night to night: you can collect the evening before and return on the night of your last day. Final
+        price is agreed with the owner.
       </Text>
     </Section>
   );

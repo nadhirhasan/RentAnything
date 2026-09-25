@@ -10,7 +10,18 @@ import { EmptyState, Screen, SignInPrompt } from '@/components/layout';
 import { Button, Divider, Field, KeyValue, Notice, RoundIconButton, Section, Segmented, Skeleton, Stepper } from '@/components/ui';
 import { VehiclePhoto } from '@/components/vehicle';
 import { useAuth } from '@/lib/auth';
-import { addDays, formatDay, formatDays, formatRange, lastDay, overlapsBooked, type DateRange } from '@/lib/booking-rules';
+import {
+  addDays,
+  formatDay,
+  formatDays,
+  formatRange,
+  handover,
+  lastDay,
+  nightBeforePossible,
+  overlapsBooked,
+  type DateRange,
+  type Pickup,
+} from '@/lib/booking-rules';
 import { getBookedDates, requestBooking } from '@/lib/bookings';
 import { askForNotifications } from '@/lib/push';
 import { colomboDate, formatLKPhone, formatLKR, isValidLKPhone } from '@/lib/format';
@@ -123,6 +134,8 @@ function BookingForm({
     () => dayList.find((d) => d > today && !overlapsBooked(d, 1, booked)) ?? null,
   );
   const [withDriver, setWithDriver] = useState(!v.self_drive);
+  // The usual way here: collect the evening before, return on the last night.
+  const [pickupChoice, setPickupChoice] = useState<Pickup>('night_before');
   const [note, setNote] = useState('');
   const [phone, setPhone] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -132,6 +145,9 @@ function BookingForm({
   const estimate = useMemo(() => estimateTrip(v, days, 0, withDriver), [v, days, withDriver]);
   const clash = start != null && overlapsBooked(start, days, booked);
   const end = start ? lastDay(start, days) : null;
+  const canNightBefore = start != null && nightBeforePossible(start, today);
+  const pickup: Pickup = canNightBefore ? pickupChoice : 'morning';
+  const times = start ? handover(start, days, pickup) : null;
 
   const submit = async () => {
     setError(null);
@@ -157,7 +173,7 @@ function BookingForm({
         if (e) throw e;
         await refreshProfile();
       }
-      const bookingId = await requestBooking({ listingId: v.id, startDate: start, days, withDriver, note });
+      const bookingId = await requestBooking({ listingId: v.id, startDate: start, days, withDriver, note, pickup });
       askForNotifications();
       toast('Request sent to the owner');
       router.replace({ pathname: '/booking/[id]', params: { id: bookingId, sent: '1' } });
@@ -185,13 +201,15 @@ function BookingForm({
           </View>
 
           <Section title="When do you need it?">
+            <Text style={styles.note}>Pick the first day of your trip.</Text>
             <DayStrip days={dayList} start={start} length={days} booked={booked} firstDay={today} onPick={setStart} />
             <View style={{ flexDirection: 'row' }}>
-              <Stepper label="Number of days" value={days} onChange={setDays} min={minDays} max={180} />
+              <Stepper label="Trip days" value={days} onChange={setDays} min={minDays} max={180} />
             </View>
             {start && end ? (
               <Text style={styles.summary}>
-                {formatDay(start)} → {formatDay(end)} · {formatDays(days)}
+                Trip: {formatDay(start)}
+                {days > 1 ? ` → ${formatDay(end)}` : ''} · {formatDays(days)}
               </Text>
             ) : null}
             {v.min_days > 1 ? <Text style={styles.note}>Minimum hire is {formatDays(v.min_days)}.</Text> : null}
@@ -202,6 +220,33 @@ function BookingForm({
               </Text>
             ) : null}
           </Section>
+
+          {start && times ? (
+            <Section title="Collect and return">
+              {canNightBefore ? (
+                <Segmented
+                  options={[
+                    { value: 'night_before', label: 'Evening before' },
+                    { value: 'morning', label: 'Morning of the trip' },
+                  ]}
+                  value={pickupChoice}
+                  onChange={setPickupChoice}
+                />
+              ) : (
+                <Text style={styles.note}>Your trip starts today, so you collect the vehicle this morning.</Text>
+              )}
+              <View style={styles.handover}>
+                <KeyValue label="Collect" value={times.collect} />
+                <KeyValue label="Return" value={times.back} />
+              </View>
+              <Text style={styles.note}>
+                {pickup === 'night_before'
+                  ? `Rental days run night to night, the usual way in Sri Lanka: collect on the evening before and bring it back on the night of your last day. That's still ${formatDays(days)}.`
+                  : `Collect on the morning of your first day and bring it back on the night of your last day. ${formatDays(days)}.`}{' '}
+                Agree the exact time with the owner in chat.
+              </Text>
+            </Section>
+          ) : null}
 
           {v.self_drive && v.driver_available ? (
             <Section title="Driver">
@@ -283,11 +328,13 @@ function BookingForm({
           <View style={styles.barInner}>
             {error ? <Notice icon={CircleAlert} tone="danger" text={error} /> : null}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <View style={{ flexShrink: 1 }}>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.barPrice}>{formatLKR(estimate.total)}</Text>
-                <Text style={styles.sub}>{start ? `${formatRange(start, end ?? start)} · pay in cash` : 'pay in cash'}</Text>
+                <Text style={styles.sub} numberOfLines={1}>
+                  {times ? `Collect ${times.collect}` : 'Pay the owner in cash'}
+                </Text>
               </View>
-              <Button label="Send request" onPress={submit} loading={busy} style={{ flex: 1 }} />
+              <Button label="Send request" onPress={submit} loading={busy} style={{ paddingHorizontal: 20 }} />
             </View>
           </View>
         </View>
@@ -332,6 +379,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 16, fontWeight: font.semibold, color: colors.ink },
   sub: { fontSize: 13, color: colors.text2 },
   summary: { fontSize: 14, fontWeight: font.semibold, color: colors.ink },
+  handover: { gap: 8, padding: 12, borderRadius: radius.md, backgroundColor: colors.primary50 },
   note: { fontSize: 12, color: colors.muted, lineHeight: 17 },
   body: { fontSize: 14, color: colors.ink, lineHeight: 20 },
   stepNum: {

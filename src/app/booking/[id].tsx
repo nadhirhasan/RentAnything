@@ -41,6 +41,7 @@ import {
   formatDay,
   formatDays,
   formatRange,
+  handover,
   isValidHandoverCode,
   NO_DEAL_REASONS,
   reasonLabel,
@@ -278,9 +279,13 @@ export default function BookingScreen() {
         </Pressable>
 
         <Section title="Trip">
-          <KeyValue label="Pick up" value={formatDay(b.start_date)} />
-          <KeyValue label="Return" value={`${formatDay(b.end_date)} (last day)`} />
-          <KeyValue label="Days" value={formatDays(b.days)} />
+          <KeyValue label="Collect" value={handover(b.start_date, b.days, b.pickup).collect} />
+          <KeyValue label="Return" value={handover(b.start_date, b.days, b.pickup).back} />
+          <KeyValue
+            label="Days"
+            value={formatDays(b.days)}
+            sub={b.days > 1 ? formatRange(b.start_date, b.end_date) : formatDay(b.start_date)}
+          />
           <KeyValue label="Driver" value={b.with_driver ? 'With driver' : 'Self-drive'} />
           <Divider />
           {b.agreed_total != null ? (

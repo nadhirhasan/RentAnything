@@ -1,5 +1,5 @@
 // Bookings and owner dues (see supabase/migrations/*_bookings_and_dues.sql).
-import type { BookingRole, BookingState, CustomerTag, DateRange } from './booking-rules';
+import type { BookingRole, BookingState, CustomerTag, DateRange, Pickup } from './booking-rules';
 import { supabase } from './supabase';
 
 export type BookingListItem = {
@@ -43,6 +43,7 @@ export type BookingDetail = {
   end_date: string;
   days: number;
   with_driver: boolean;
+  pickup: Pickup;
   note: string;
   estimate: number;
   agreed_total: number | null;
@@ -75,6 +76,7 @@ export async function requestBooking(input: {
   days: number;
   withDriver: boolean;
   note: string;
+  pickup: Pickup;
 }): Promise<string> {
   const { data, error } = await supabase.rpc('request_booking', {
     listing_id: input.listingId,
@@ -82,6 +84,7 @@ export async function requestBooking(input: {
     days: input.days,
     with_driver: input.withDriver,
     note: input.note,
+    pickup: input.pickup,
   });
   if (error) throw error;
   return data as string;

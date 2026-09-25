@@ -55,6 +55,9 @@ export function friendlyError(error: unknown): string {
   if (message.includes('booking_needs_phone'))
     return 'Add your phone number so the owner can call you.';
   if (message.includes('booking_own_listing')) return "You can't book your own vehicle.";
+  if (message.includes('booking_pickup_passed'))
+    return "It's too late to collect the evening before. Choose morning pickup or a later day.";
+  if (message.includes('booking_bad_pickup')) return 'Choose when you want to collect the vehicle.';
   if (message.includes('booking_bad_dates')) return 'Please pick a start date within the next 6 months.';
   if (message.includes('booking_min_days')) return 'This owner has a minimum number of days. Please book longer.';
   if (message.includes('booking_dates_taken')) return 'Those days are already booked. Please pick other dates.';

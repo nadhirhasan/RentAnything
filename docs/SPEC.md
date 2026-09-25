@@ -325,8 +325,15 @@ control honesty; we make the honest path the easiest one.
 
 ### 12.1 Booking flow
 
-1. **Request** — the customer picks a start day and number of days (at least the
-   vehicle's minimum), self-drive / with driver, and an optional message. The app
+1. **Request** — the customer picks the first trip day and number of days (at least
+   the vehicle's minimum), when to collect, self-drive / with driver, and an optional
+   message. **Days run night to night**, the usual way in Sri Lanka: for a trip on the
+   27th the customer collects on the **evening of the 26th** and returns on the
+   **night of the 27th** — 1 day. This is the default; "morning of the trip" is the
+   other option (forced when the trip starts today). Either way the vehicle comes back
+   on the night of the last day, so back-to-back bookings (next customer collects that
+   evening) don't overlap. The request, chat messages and notifications spell out
+   "Collect on the evening of Sat 26 Sep · return by the night of Sun 27 Sep". The app
    shows the estimated price (same maths as the trip estimate). A phone number is
    required. Questions go through chat (§13).
    Limits: 3 open requests at a time, 10 a day, one open booking per vehicle.

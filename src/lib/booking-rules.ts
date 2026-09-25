@@ -191,6 +191,32 @@ export function formatDays(days: number): string {
 }
 
 // ---------------------------------------------------------------------------
+// Pickup: in Sri Lanka a rental day usually runs night to night. For a trip on
+// the 27th you collect the vehicle on the evening of the 26th and bring it
+// back on the night of the 27th: 1 day. Either way it comes back on the night
+// of the last day.
+// ---------------------------------------------------------------------------
+
+export type Pickup = 'night_before' | 'morning';
+
+export function pickupDay(start: string, pickup: Pickup): string {
+  return pickup === 'night_before' ? addDays(start, -1) : start;
+}
+
+// Collecting the evening before a trip that starts today is already past.
+export function nightBeforePossible(start: string, today: string): boolean {
+  return addDays(start, -1) >= today;
+}
+
+// { collect: "Sat 26 Sep, evening", back: "Sun 27 Sep, night" }
+export function handover(start: string, days: number, pickup: Pickup): { collect: string; back: string } {
+  return {
+    collect: `${formatDay(pickupDay(start, pickup))}, ${pickup === 'night_before' ? 'evening' : 'morning'}`,
+    back: `${formatDay(lastDay(start, days))}, night`,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Money
 // ---------------------------------------------------------------------------
 
