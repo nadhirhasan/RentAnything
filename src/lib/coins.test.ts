@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { formatCoins, freeRentalsLeft, rentalFee, toCoins, topUpPacks, walletCoins } from './coins.ts';
+import { creditUsed, formatCoins, freeRentalsLeft, rentalFee, toCoins, topUpPacks, walletCoins } from './coins.ts';
 
 test('coins from rupees', () => {
   assert.equal(toCoins(2000, 10), 200);
@@ -28,8 +28,13 @@ test('fee preview matches the database', () => {
 });
 
 test('top-up packs start with what you owe', () => {
-  assert.deepEqual(topUpPacks(0), [100, 300, 500, 1000]);
-  assert.deepEqual(topUpPacks(640), [640, 1000]);
-  assert.deepEqual(topUpPacks(95), [100, 300, 500, 1000]);
-  assert.deepEqual(topUpPacks(300), [300, 500, 1000]);
+  assert.deepEqual(topUpPacks(0), [500, 1000, 2000, 5000]);
+  assert.deepEqual(topUpPacks(640), [640, 1000, 2000, 5000]);
+  assert.deepEqual(topUpPacks(95), [100, 500, 1000, 2000]);
+  assert.deepEqual(topUpPacks(2000), [2000, 5000, 10000, 20000]);
+  assert.deepEqual(topUpPacks(6400), [6400, 10000, 20000, 50000]);
+  // 1 coin = Rs 1, 1,000 coins of credit.
+  assert.deepEqual(creditUsed(240, 1000, 1), { used: 240, limit: 1000, left: 760, fraction: 0.24 });
+  assert.deepEqual(creditUsed(-500, 1000, 1), { used: 0, limit: 1000, left: 1000, fraction: 0 });
+  assert.equal(creditUsed(1500, 1000, 1).fraction, 1);
 });

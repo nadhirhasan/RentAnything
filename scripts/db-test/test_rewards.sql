@@ -1,7 +1,12 @@
 -- Tests for owner rewards: free first rentals, fee cap, whole coins, verified
 -- rentals and search ranking. Runs after test_avatars.sql (helpers in "test").
 
-update public.app_settings set free_rentals = 3, fee_cap = 3000, coin_value = 10;
+-- The defaults: 1 coin = Rs 1, and 1,000 coins of credit.
+select test.eq((select coin_value from public.app_settings), 1, 'coin default');
+select test.eq((select column_default from information_schema.columns
+                where table_name = 'app_settings' and column_name = 'dues_limit'), '1000', 'credit default');
+-- The tests below were written for Rs 10 coins, so they still use that.
+update public.app_settings set free_rentals = 3, fee_cap = 3000, coin_value = 10, dues_limit = 10000;
 
 insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-0000-0000-0000000004a1', 'o5@x.lk', '{"full_name":"Honest Owner"}'),
@@ -87,6 +92,10 @@ select test.as_user('00000000-0000-0000-0000-0000000004a9');
 select public.admin_update_settings(5, 5000, 30, '', 2, 2500, 5);
 select test.eq((select fee_cap from public.get_app_settings()), 2500, 'fee cap updated');
 select public.admin_update_settings(5, 5000, 30, '', 3, 3000, 10);
+-- An older app sends only the first four settings: the rest stay as they are.
+select public.admin_update_settings(5, 5000, 30, '');
+select test.eq((select coin_value from public.get_app_settings()), 10, 'coin value kept');
+select test.eq((select fee_cap from public.get_app_settings()), 3000, 'fee cap kept');
 select test.as_user('00000000-0000-0000-0000-0000000004a2');
 select test.raises($$select public.admin_update_settings(5, 5000, 30, '', 3, 3000, 10)$$, 'admin_only');
 

@@ -39,14 +39,19 @@ export function freeRentalsLeft(freeRentals: number, verified: number): number {
 }
 
 // Coin packs to buy; the amount owed (rounded up to 10 coins) comes first.
-export const COIN_PACKS = [100, 300, 500, 1000];
+export const COIN_PACKS = [500, 1000, 2000, 5000];
 
 export function topUpPacks(owedCoins: number): number[] {
-  const packs = [...COIN_PACKS];
-  if (owedCoins > 0) {
-    const due = Math.ceil(owedCoins / 10) * 10;
-    if (!packs.includes(due)) packs.unshift(due);
-    return [due, ...packs.filter((p) => p !== due && p > due)].slice(0, 4);
-  }
-  return packs;
+  if (owedCoins <= 0) return [...COIN_PACKS];
+  const due = Math.ceil(owedCoins / 10) * 10;
+  const bigger = [...COIN_PACKS, 10000, 20000, 50000].filter((p) => p > due);
+  return [due, ...bigger].slice(0, 4);
+}
+
+// Owners can owe up to `dues_limit` rupees (shown as coins of credit) before
+// their vehicles are hidden. Before that the app only reminds them to top up.
+export function creditUsed(balanceRupees: number, limitRupees: number, coinValue: number) {
+  const used = Math.max(0, toCoins(balanceRupees, coinValue));
+  const limit = Math.max(1, toCoins(limitRupees, coinValue));
+  return { used, limit, left: Math.max(0, limit - used), fraction: Math.min(1, used / limit) };
 }

@@ -121,16 +121,16 @@ export const HELP = {
       'Customers pay the owner in cash. ' +
       'For each rental that starts with the code, the owner pays RentAnything a small fee in coins. ' +
       'Your first rentals are free, and there is a highest fee per rental, so long rentals never cost too much. ' +
-      'Example: 5% of Rs 40,000 = Rs 2,000 = 200 coins.',
+      'Example: 5% of Rs 40,000 = Rs 2,000 = 2,000 coins.',
   },
   balance: {
     title: 'Your wallet',
     text:
-      'Coins are how you pay RentAnything. 1 coin = a fixed amount of rupees (shown on this page). ' +
-      'Each rental that starts takes some coins. If you go below zero, you owe coins. ' +
-      'If you owe too many, or for too long, people cannot find your vehicles. ' +
-      'Buy coins with a bank transfer, LankaQR or eZ Cash, tell us in the app, and your vehicles come back straight away. ' +
-      'You can also buy coins in advance.',
+      'Coins are how you pay RentAnything. 1 coin = Rs 1. ' +
+      'Each rental that starts takes some coins. You can go below zero: you get 1,000 coins of credit. ' +
+      'While you are inside your credit, your vehicles show as normal, and we just remind you to top up. ' +
+      'If you use all 1,000 coins, or owe coins for too long, people cannot find your vehicles until you top up. ' +
+      'Top up with a bank transfer, LankaQR or eZ Cash, tell us in the app, and your vehicles come back straight away.',
   },
   rewards: {
     title: 'Owner rewards',

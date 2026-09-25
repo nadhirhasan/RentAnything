@@ -10,7 +10,7 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import { useFeedback } from '@/components/feedback';
 import { Button, Chip, Field, Notice, Wrap } from '@/components/ui';
 import { PAYMENT_METHODS, reportDuesPayment, type MyDues, type PaymentMethod } from '@/lib/bookings';
-import { formatCoins, toCoins, topUpPacks, walletCoins } from '@/lib/coins';
+import { creditUsed, formatCoins, toCoins, topUpPacks, walletCoins } from '@/lib/coins';
 import { formatLKR } from '@/lib/format';
 import { friendlyError } from '@/lib/supabase';
 import { contactSupport, hasSupport } from '@/lib/support';
@@ -89,15 +89,15 @@ export function CoinAmount({
 
 // Small tappable wallet balance, e.g. in the My vehicles header.
 export function CoinPill({ dues }: { dues: MyDues }) {
-  const coins = walletCoins(dues.balance, dues.coin_value || 10);
+  const coins = walletCoins(dues.balance, dues.coin_value || 1);
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Your wallet: ${formatCoins(coins)}`}
       onPress={() => router.push('/dues')}
-      style={({ pressed }) => [styles.pill, coins < 0 && styles.pillOwe, pressed && { opacity: 0.85 }]}>
+      style={({ pressed }) => [styles.pill, dues.restricted && styles.pillOwe, pressed && { opacity: 0.85 }]}>
       <Coin size={20} />
-      <Text style={[styles.pillText, coins < 0 && { color: colors.danger }]}>
+      <Text style={[styles.pillText, dues.restricted && { color: colors.danger }]}>
         {coins.toLocaleString('en-US', { maximumFractionDigits: 1 })}
       </Text>
     </Pressable>
@@ -106,8 +106,9 @@ export function CoinPill({ dues }: { dues: MyDues }) {
 
 // The dark wallet card with the balance and a Top up button.
 export function WalletCard({ dues, onTopUp }: { dues: MyDues; onTopUp: (coins?: number) => void }) {
-  const coinValue = dues.coin_value || 10;
+  const coinValue = dues.coin_value || 1;
   const coins = walletCoins(dues.balance, coinValue);
+  const credit = creditUsed(dues.balance, dues.dues_limit, coinValue);
   const [w, setW] = useState(0);
   const [h, setH] = useState(0);
   return (
@@ -145,19 +146,35 @@ export function WalletCard({ dues, onTopUp }: { dues: MyDues; onTopUp: (coins?: 
       </View>
       <View style={styles.balanceRow}>
         <Coin size={44} />
-        <Text style={[styles.balance, coins < 0 && { color: '#FCA5A5' }]} accessibilityLabel={formatCoins(coins)}>
+        <Text style={[styles.balance, dues.restricted && { color: '#FCA5A5' }]} accessibilityLabel={formatCoins(coins)}>
           {coins.toLocaleString('en-US', { maximumFractionDigits: 1 })}
         </Text>
         <Text style={styles.balanceUnit}>coins</Text>
       </View>
-      <Text style={styles.walletSub}>
-        {coins < 0
-          ? `You owe ${formatLKR(Math.max(0, dues.balance))}`
-          : coins > 0
-            ? `Worth ${formatLKR(-dues.balance)} · fees come out of these`
-            : 'All paid up'}
-        {'  ·  '}1 coin = {formatLKR(coinValue)}
-      </Text>
+      {credit.used > 0 ? (
+        <View style={{ gap: 6 }}>
+          <View style={styles.creditTrack}>
+            <View
+              style={[
+                styles.creditFill,
+                { width: `${Math.max(4, credit.fraction * 100)}%` },
+                dues.restricted && { backgroundColor: '#F87171' },
+              ]}
+            />
+          </View>
+          <Text style={styles.walletSub}>
+            {dues.restricted
+              ? `All ${credit.limit.toLocaleString('en-US')} coins of credit are used`
+              : `Using ${credit.used.toLocaleString('en-US')} of your ${credit.limit.toLocaleString('en-US')} coins of credit`}
+            {'  ·  '}1 coin = {formatLKR(coinValue)}
+          </Text>
+        </View>
+      ) : (
+        <Text style={styles.walletSub}>
+          {coins > 0 ? 'Paid in advance · fees come out of these' : 'All paid up'}
+          {'  ·  '}1 coin = {formatLKR(coinValue)}
+        </Text>
+      )}
       <Pressable
         accessibilityRole="button"
         onPress={() => onTopUp()}
@@ -166,14 +183,14 @@ export function WalletCard({ dues, onTopUp }: { dues: MyDues; onTopUp: (coins?: 
         <Text style={styles.topUpText}>Top up coins</Text>
       </Pressable>
       <View style={styles.quickRow}>
-        {[100, 300, 500].map((c) => (
+        {[500, 1000, 2000].map((c) => (
           <Pressable
             key={c}
             accessibilityRole="button"
             accessibilityLabel={`Top up ${c} coins`}
             onPress={() => onTopUp(c)}
             style={({ pressed }) => [styles.quick, pressed && { opacity: 0.7 }]}>
-            <Text style={styles.quickText}>+{c}</Text>
+            <Text style={styles.quickText}>+{c.toLocaleString('en-US')}</Text>
           </Pressable>
         ))}
       </View>
@@ -197,7 +214,7 @@ export function TopUpSheet({
 }) {
   const insets = useSafeAreaInsets();
   const { toast } = useFeedback();
-  const coinValue = dues.coin_value || 10;
+  const coinValue = dues.coin_value || 1;
   const owed = Math.max(0, -walletCoins(dues.balance - dues.pending, coinValue));
   const packs = topUpPacks(owed);
   if (initialCoins && !packs.includes(initialCoins)) packs.push(initialCoins);
@@ -252,7 +269,7 @@ export function TopUpSheet({
                           key={p}
                           accessibilityRole="radio"
                           accessibilityState={{ selected: on }}
-                          accessibilityLabel={`${p} coins, ${formatLKR(p * coinValue)}`}
+                          accessibilityLabel={`${p.toLocaleString('en-US')} coins, ${formatLKR(p * coinValue)}`}
                           onPress={() => setPack(p)}
                           style={[styles.pack, on && styles.packOn]}>
                           <Coin size={28} />
@@ -366,6 +383,8 @@ const styles = StyleSheet.create({
   },
   topUpText: { fontSize: 16, fontWeight: font.bold, color: gold.deep },
   quickRow: { flexDirection: 'row', gap: 8 },
+  creditTrack: { height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.12)', overflow: 'hidden' },
+  creditFill: { height: 6, borderRadius: 3, backgroundColor: gold.mid },
   quick: {
     flex: 1,
     height: 36,

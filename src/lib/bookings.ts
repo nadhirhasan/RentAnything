@@ -256,7 +256,7 @@ export async function getAppSettings(): Promise<AppSettings | null> {
     commission_percent: Number(row.commission_percent),
     free_rentals: row.free_rentals ?? 3,
     fee_cap: row.fee_cap ?? 3000,
-    coin_value: row.coin_value ?? 10,
+    coin_value: row.coin_value ?? 1,
   };
 }
 

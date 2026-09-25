@@ -2,7 +2,7 @@
 -- Runs after test.sql (helpers in schema "test").
 
 -- Plain 5% here; free rentals, the cap and coin rounding are tested in test_rewards.sql.
-update public.app_settings set free_rentals = 0, fee_cap = 0, coin_value = 1;
+update public.app_settings set free_rentals = 0, fee_cap = 0, coin_value = 1, dues_limit = 5000;
 
 -- Users: O owner, C and K customers, N customer without phone, X stranger, M admin.
 insert into auth.users (id, email, raw_user_meta_data) values

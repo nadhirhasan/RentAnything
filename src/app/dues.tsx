@@ -3,14 +3,14 @@ import { ChevronLeft, CircleAlert, CircleCheck, Clock, Gift, Wallet } from 'luci
 import { useCallback, useState } from 'react';
 import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { CoinAmount, gold, TopUpSheet, WalletCard } from '@/components/coin';
+import { Coin, CoinAmount, gold, TopUpSheet, WalletCard } from '@/components/coin';
 import { EmptyState, Screen, SignInPrompt } from '@/components/layout';
 import { ScoreMeter, TierBadge } from '@/components/reputation';
 import { Button, Divider, Notice, RoundIconButton, Section, Skeleton } from '@/components/ui';
 import { HELP } from '@/lib/help';
 import { useAuth } from '@/lib/auth';
 import { feeRules, getMyDues, PAYMENT_METHODS, type MyDues } from '@/lib/bookings';
-import { formatCoins, freeRentalsLeft, rentalFee, toCoins } from '@/lib/coins';
+import { creditUsed, formatCoins, freeRentalsLeft, rentalFee, toCoins } from '@/lib/coins';
 import { MIN_OUTCOMES, nextTier } from '@/lib/reputation';
 import { formatDateShort, formatLKR } from '@/lib/format';
 import { friendlyError } from '@/lib/supabase';
@@ -70,13 +70,14 @@ export default function DuesScreen() {
     );
   }
 
-  const coinValue = dues.coin_value || 10;
+  const coinValue = dues.coin_value || 1;
   const owed = Math.max(0, dues.balance - dues.pending);
   const pendingPayment = dues.payments.find((p) => p.status === 'pending');
   const freeLeft = freeRentalsLeft(dues.free_rentals, dues.verified_rentals);
   const next = nextTier(dues.owner_score, dues.verified_rentals, dues.owner_tier);
   const coins = (rupees: number) => formatCoins(toCoins(rupees, coinValue));
   const coinNumber = (rupees: number) => toCoins(rupees, coinValue);
+  const credit = creditUsed(dues.balance, dues.dues_limit, coinValue);
 
   return (
     <Screen>
@@ -103,15 +104,24 @@ export default function DuesScreen() {
                 tone="danger"
                 text={
                   dues.restricted_reason === 'limit'
-                    ? `You owe ${coins(dues.dues_limit)} or more, so your vehicles are hidden from search and you can't accept bookings. Top up to bring them back.`
+                    ? `You used all ${credit.limit.toLocaleString('en-US')} coins of credit, so your vehicles are hidden from search and you can't accept bookings. Top up to bring them back.`
                     : `Some coins are owed for more than ${dues.dues_days} days, so your vehicles are hidden from search. Top up to bring them back.`
                 }
               />
             ) : owed > 0 ? (
-              <Text style={styles.sub}>
-                {dues.due_by ? `Please top up by ${formatDateShort(dues.due_by)}` : 'Please top up soon'}, and before
-                you owe {coins(dues.dues_limit)}, to keep your vehicles in search.
-              </Text>
+              <View style={styles.friendly}>
+                <Coin size={28} />
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={styles.friendlyTitle}>Time for a top-up?</Text>
+                  <Text style={styles.friendlyText}>
+                    You have {credit.left.toLocaleString('en-US')} coins of credit left, so your vehicles are showing
+                    as normal. Top up when it suits you
+                    {dues.due_by ? ` (by ${formatDateShort(dues.due_by)})` : ''}. Your vehicles are only hidden if you
+                    use all {credit.limit.toLocaleString('en-US')} coins.
+                  </Text>
+                  <Button label="Top up now" size="sm" kind="soft" onPress={() => setTopUp({})} style={{ alignSelf: 'flex-start' }} />
+                </View>
+              </View>
             ) : (
               <View style={styles.row}>
                 <CircleCheck size={18} color={colors.success700} />
@@ -298,6 +308,17 @@ const styles = StyleSheet.create({
   reward: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   rewardIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   dots: { flexDirection: 'row', gap: 6 },
+  friendly: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 14,
+    borderRadius: radius.md,
+    backgroundColor: gold.soft,
+    borderWidth: 1,
+    borderColor: gold.light,
+  },
+  friendlyTitle: { fontSize: 15, fontWeight: font.bold, color: gold.text },
+  friendlyText: { fontSize: 13, color: gold.text, lineHeight: 19 },
   badgeRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 10 },
   next: { gap: 4, padding: 12, borderRadius: radius.md, backgroundColor: colors.background },
   dot: { width: 22, height: 6, borderRadius: 3, backgroundColor: colors.border },

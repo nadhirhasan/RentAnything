@@ -326,7 +326,7 @@ export default function BookingScreen() {
             <KeyValue
               label="RentAnything fee"
               help={HELP.fee}
-              value={b.commission === 0 ? 'Free' : formatCoins(toCoins(b.commission, data?.dues?.coin_value || 10))}
+              value={b.commission === 0 ? 'Free' : formatCoins(toCoins(b.commission, data?.dues?.coin_value || 1))}
               sub={b.commission === 0 ? 'A free rental for you' : `${formatLKR(b.commission)} · from your coins`}
             />
           ) : null}
@@ -681,7 +681,7 @@ function StartSheet({
   // Same maths as the database: free first rentals, the cap, whole coins.
   const rules = dues ? feeRules(dues, b.commission_percent) : null;
   const fee = total != null && rules ? rentalFee(total, rules) : null;
-  const coinValue = dues?.coin_value || 10;
+  const coinValue = dues?.coin_value || 1;
 
   const submit = async () => {
     if (!isValidHandoverCode(code)) {

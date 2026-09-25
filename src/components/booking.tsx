@@ -6,7 +6,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
-import { Coin } from '@/components/coin';
+import { Coin, gold } from '@/components/coin';
 import { Button } from '@/components/ui';
 import { VehiclePhoto } from '@/components/vehicle';
 import {
@@ -29,8 +29,8 @@ import {
   type Tone,
 } from '@/lib/booking-rules';
 import type { BookingListItem, CustomerSummary, MyDues } from '@/lib/bookings';
-import { formatCoins, toCoins } from '@/lib/coins';
-import { formatDateShort, formatLKR } from '@/lib/format';
+import { creditUsed, formatCoins, toCoins } from '@/lib/coins';
+import { formatLKR } from '@/lib/format';
 import { colors, font, maxContentWidth, radius } from '@/theme';
 
 const TONES: Record<Tone, { bg: string; fg: string }> = {
@@ -342,12 +342,17 @@ export function DuesBanner({ dues }: { dues: MyDues | null }) {
   if (!dues || (dues.balance <= 0 && dues.pending <= 0)) return null;
   const owed = Math.max(0, dues.balance - dues.pending);
   const restricted = dues.restricted;
-  const coins = (rupees: number) => formatCoins(toCoins(rupees, dues.coin_value || 10));
+  const coinValue = dues.coin_value || 1;
+  const credit = creditUsed(dues.balance, dues.dues_limit, coinValue);
+  const coins = (rupees: number) => formatCoins(toCoins(rupees, coinValue));
+  // Red only when the vehicles are hidden; before that a friendly reminder.
   const text = restricted
-    ? `Your vehicles are hidden. You owe ${coins(owed)}: top up to bring them back.`
+    ? dues.restricted_reason === 'limit'
+      ? `Your vehicles are hidden: all ${credit.limit.toLocaleString('en-US')} coins of credit are used. Top up to bring them back.`
+      : `Your vehicles are hidden: some coins are owed for more than ${dues.dues_days} days. Top up to bring them back.`
     : owed > 0
-      ? `You owe ${coins(owed)}${dues.due_by ? `. Top up by ${formatDateShort(dues.due_by)}` : ''}.`
-      : `We're checking your payment of ${formatLKR(dues.pending)}.`;
+      ? `You're using ${credit.used.toLocaleString('en-US')} of your ${credit.limit.toLocaleString('en-US')} coins of credit. Top up anytime to keep renting smoothly.`
+      : `We're checking your top-up of ${coins(dues.pending)}.`;
   return (
     <Pressable
       accessibilityRole="button"
@@ -356,11 +361,11 @@ export function DuesBanner({ dues }: { dues: MyDues | null }) {
         styles.banner,
         restricted
           ? { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }
-          : { backgroundColor: colors.offer50, borderColor: '#FDE68A' },
+          : { backgroundColor: gold.soft, borderColor: gold.light },
       ]}>
       <Coin size={22} />
-      <Text style={[styles.bannerText, { color: restricted ? colors.danger : colors.offerText }]}>{text}</Text>
-      <Text style={[styles.bannerLink, { color: restricted ? colors.danger : colors.offerText }]}>
+      <Text style={[styles.bannerText, { color: restricted ? colors.danger : gold.text }]}>{text}</Text>
+      <Text style={[styles.bannerLink, { color: restricted ? colors.danger : gold.text }]}>
         {owed > 0 ? 'Top up' : 'View'}
       </Text>
     </Pressable>
