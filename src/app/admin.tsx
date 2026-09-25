@@ -1,11 +1,12 @@
 import { router, useFocusEffect } from 'expo-router';
 import { ChevronLeft, EyeOff, MessageCircle, ShieldCheck, Star } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
-import { FlatList, Linking, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Linking, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useFeedback } from '@/components/feedback';
 import { EmptyState, Screen } from '@/components/layout';
-import { Button, RoundIconButton, Segmented, Skeleton, Tag } from '@/components/ui';
+import { DisputesTab, PaymentsTab, SettingsTab } from '@/components/admin-payments';
+import { Button, Chip, RoundIconButton, Skeleton, Tag } from '@/components/ui';
 import { VehiclePhoto } from '@/components/vehicle';
 import { useAuth } from '@/lib/auth';
 import { formatDateShort, whatsappUrl } from '@/lib/format';
@@ -22,9 +23,9 @@ import {
 } from '@/lib/trust';
 import { colors, font, radius } from '@/theme';
 
-type Tab = 'reports' | 'hidden';
+type Tab = 'reports' | 'hidden' | 'payments' | 'disputes' | 'settings';
 
-// Admin-only moderation: open reports and hidden listings.
+// Admin-only: reports, hidden listings, owner payments, disputes and settings.
 export default function AdminScreen() {
   const { profile, loading } = useAuth();
   const { toast, confirm } = useFeedback();
@@ -266,17 +267,30 @@ export default function AdminScreen() {
         <RoundIconButton icon={ChevronLeft} label="Back" onPress={goBack} background="transparent" size={40} />
         <Text style={styles.heading}>Moderation</Text>
       </View>
-      <View style={styles.tabs}>
-        <Segmented
-          options={[
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.tabsScroll}
+        contentContainerStyle={styles.tabs}>
+        {(
+          [
             { value: 'reports', label: `Reports${queue ? ` (${queue.length})` : ''}` },
             { value: 'hidden', label: `Hidden${hidden ? ` (${hidden.length})` : ''}` },
-          ]}
-          value={tab}
-          onChange={(v) => setTab(v as Tab)}
-        />
-      </View>
-      {error ? (
+            { value: 'payments', label: 'Payments' },
+            { value: 'disputes', label: 'Disputes' },
+            { value: 'settings', label: 'Settings' },
+          ] as { value: Tab; label: string }[]
+        ).map((t) => (
+          <Chip key={t.value} label={t.label} selected={tab === t.value} onPress={() => setTab(t.value)} />
+        ))}
+      </ScrollView>
+      {tab === 'payments' ? (
+        <PaymentsTab />
+      ) : tab === 'disputes' ? (
+        <DisputesTab />
+      ) : tab === 'settings' ? (
+        <SettingsTab />
+      ) : error ? (
         <EmptyState icon={ShieldCheck} title="Couldn't load" text={error} action={<Button label="Try again" onPress={load} />} />
       ) : tab === 'reports' ? (
         queue == null ? (
@@ -331,7 +345,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   heading: { fontSize: 20, fontWeight: font.bold, color: colors.ink },
-  tabs: { paddingHorizontal: 16, paddingBottom: 12, backgroundColor: colors.white },
+  tabsScroll: { flexGrow: 0, backgroundColor: colors.white },
+  tabs: { paddingHorizontal: 16, paddingBottom: 12, gap: 8 },
   card: {
     backgroundColor: colors.white,
     borderRadius: radius.lg,

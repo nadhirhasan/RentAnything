@@ -27,9 +27,8 @@ In scope:
 
 Out of scope for v1 (possible later):
 
-- In-app booking requests, calendars, payments.
+- Online payments (customers pay owners in cash; see §12 for bookings and fees).
 - Listing verification / approval (listings go live immediately; an admin can hide one).
-- Reviews and ratings.
 - Sinhala / Tamil (English only for now).
 - Non-vehicle categories (house rentals, etc.).
 - Phone-number (SMS OTP) login.
@@ -207,6 +206,15 @@ reviews          id, listing_id, reviewer_id, rating, condition/owner/value rati
 hire_confirmations  listing_id, customer_id, confirmed_at
 contact_feedback listing_id, user_id, owner_answered, info_accurate
 reports          id, reporter_id, listing_id, review_id (null = listing), reason, note, status
+bookings         id, listing_id, owner_id, customer_id, start_date, days, end_date,
+                 with_driver, note, estimate, agreed_total, commission_percent,
+                 commission, status, handover_code, close_reason, closed_by,
+                 customer_says_rented, dispute, timestamps
+customer_ratings booking_id, customer_id, owner_id, rating, tags[]
+owner_ledger     id, owner_id, kind (commission / payment / adjustment), amount,
+                 booking_id, payment_id, note
+dues_payments    id, owner_id, amount, method, reference, status (pending / approved / rejected)
+app_settings     commission_percent, dues_limit, dues_days, payment_details (one row)
 ```
 
 Listings also have `hidden_reason` ('reports' / 'admin') and `hidden_at`.
@@ -217,7 +225,7 @@ Listings also have `hidden_reason` ('reports' / 'admin') and `hidden_at`.
   signed-in users** and logs a `contact_events` row (lets us show owners "12 people
   contacted you this week" later).
 - A listing is **live** when: not hidden AND (`is_available` OR
-  `available_again_on <= today`).
+  `available_again_on <= today`) AND its owner isn't restricted for unpaid fees (§12.3).
 
 ## 9. Screens
 
@@ -225,15 +233,18 @@ Customer:
 
 1. **Explore** — location bar, type chips, filter button, results list.
 2. **Filters** — bottom sheet.
-3. **Listing** — details, trip estimate, Call / WhatsApp.
-4. **Sign in / Sign up** — sheet shown on Call / WhatsApp or List a vehicle.
+3. **Listing** — details, trip estimate, Call / WhatsApp, Book.
+4. **Sign in / Sign up** — sheet shown on Call / WhatsApp, Book or List a vehicle.
+5. **Request to book** and **Bookings** tab (My trips / Requests) — see §12.
 
 Owner:
 
-5. **My vehicles** — each vehicle with a big availability switch and "back on" date.
-6. **Add / Edit vehicle** — steps: Vehicle → Pricing → Driver & terms → Photos &
+6. **My vehicles** — each vehicle with a big availability switch and "back on" date.
+7. **Add / Edit vehicle** — steps: Vehicle → Pricing → Driver & terms → Photos &
    location.
-7. **Account** — name, phone, WhatsApp, sign out.
+8. **Account** — name, phone, WhatsApp, sign out.
+9. **Booking** (accept / decline, handover code) and **Payments to RentAnything**
+   (balance, how to pay, "I've paid") — see §12.
 
 ## 10. Status
 
@@ -244,6 +255,8 @@ Built in v1 (September 2026):
 - Expo app: every screen in section 9, working on web; Android / iOS run via Expo Go.
 - Trust & safety (section 11): reports and moderation, ratings, legal pages,
   account deletion, contact limit, photo compression, app icon.
+- Bookings and owner fees (section 12): booking requests, handover code, owner
+  balance and payments, restrictions, disputes, admin settings.
 
 Differences from the Figma design:
 
@@ -296,8 +309,72 @@ Spam protection: we can't know if a hire happened, so reviews are tied to contac
 - App id `lk.rentanything.app` (Android package and iOS bundle id). New icon and
   splash in `assets/brand/`.
 
-## 12. Later
+## 12. Bookings and payments
 
-Verification badges, booking requests with calendar, featured listings for
-owners, Sinhala / Tamil, phone OTP login, push notifications, house rentals and other
-categories.
+Decided with the founder on 25 September 2026. Card payments are rare in Sri Lanka,
+so money works like PickMe's cash rides: **the customer pays the owner in cash, and
+the owner owes RentAnything a fee**. Unlike a hotel booking, both sides must meet and
+agree first, so the fee is only charged when a rental actually starts. We can't
+control honesty; we make the honest path the easiest one.
+
+### 12.1 Booking flow
+
+1. **Request** — the customer picks a start day and number of days (at least the
+   vehicle's minimum), self-drive / with driver, and an optional message. The app
+   shows the estimated price (same maths as the trip estimate). A phone number is
+   required. Call / WhatsApp still work for questions.
+   Limits: 3 open requests at a time, 10 a day, one open booking per vehicle.
+2. **Accept / decline** — the owner sees the customer's summary (member since,
+   rentals, rating from owners, no-shows, cancellations) and accepts or declines
+   with a reason. Requests expire after 48 hours or on the start day. Accepting
+   declines other requests for the same days; two accepted bookings can't overlap.
+   After accepting, both see each other's phone number.
+3. **Meet** — the customer checks the vehicle, the owner checks the customer.
+4. **Handover** — if they agree, the customer shows a **4-digit code**; the owner
+   enters it with the agreed price. The rental starts: the fee is added to the
+   owner's balance, the customer's review gets "Verified hire", and the vehicle
+   switches off until the day after the last day. 5 wrong codes lock it for 15 min.
+   **No deal** — either side taps No deal with a reason; nobody is charged.
+5. **After** — the customer can review the vehicle; the owner rates the customer
+   (1–5 + tags: on time, careful driver, damage, didn't turn up…). Owners' ratings
+   of customers are only shown to other owners.
+
+Either side can cancel an accepted booking (with a reason); the customer can cancel
+a request.
+
+### 12.2 Fee and owner balance
+
+- Fee: **5%** of the agreed price by default (admin setting, 0–30%; a request keeps
+  the rate from when it was made).
+- Owners see their balance, history and how to pay under Account → Payments to
+  RentAnything. They pay by bank transfer, LankaQR or eZ Cash (details set by the
+  admin) and report the payment in the app; an admin marks it received or not.
+- Admins can also adjust a balance (waive or add a charge) with a note.
+
+### 12.3 Restrictions (like PickMe)
+
+An owner is **restricted** when their balance reaches the limit (default
+**Rs 5,000**) or a fee stays unpaid for **30 days** (both admin settings; payments
+count oldest-first). Restricted owners' vehicles leave search and can't be contacted
+or booked, and they can't accept requests; bookings already accepted can still start.
+A payment reported in the last 3 days counts as paid until an admin checks it, so
+paying brings the vehicles back straight away. Owners can't delete their account
+while they owe money.
+
+### 12.4 Disputes
+
+If no code was entered, the customer is asked "Did you get the vehicle?" after the
+start day (or after the owner ended the booking). "Yes" opens a dispute; an admin
+calls both and either charges the fee on the listed price or dismisses it.
+
+### 12.5 Not yet
+
+No push notifications: the Bookings tab shows a badge (checked every minute), and
+customers can remind the owner on WhatsApp with a link to the request. Online
+payments (PayHere) and deposits can be added later on top of this flow.
+
+## 13. Later
+
+Verification badges, push notifications for bookings, online payments (PayHere),
+featured listings for owners, Sinhala / Tamil, phone OTP login, house rentals and
+other categories.

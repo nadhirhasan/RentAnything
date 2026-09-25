@@ -42,6 +42,26 @@ export function friendlyError(error: unknown): string {
       ? String((error as { message: unknown }).message)
       : String(error);
   if (message.includes('sign_in_required')) return 'Please sign in first.';
+  if (message.includes('booking_needs_phone'))
+    return 'Add your phone number so the owner can call you.';
+  if (message.includes('booking_own_listing')) return "You can't book your own vehicle.";
+  if (message.includes('booking_bad_dates')) return 'Please pick a start date within the next 6 months.';
+  if (message.includes('booking_min_days')) return 'This owner has a minimum number of days. Please book longer.';
+  if (message.includes('booking_dates_taken')) return 'Those days are already booked. Please pick other dates.';
+  if (message.includes('booking_exists')) return 'You already have a request for this vehicle.';
+  if (message.includes('booking_limit'))
+    return 'You have too many open requests. Wait for an answer or cancel one first.';
+  if (message.includes('booking_not_found')) return 'Booking not found.';
+  if (message.includes('booking_not_open')) return 'This booking has already changed. Pull down to refresh.';
+  if (message.includes('booking_bad_amount')) return 'Please enter the price you agreed.';
+  if (message.includes('dues_overdue'))
+    return 'Pay your RentAnything balance to accept new bookings.';
+  if (message.includes('dues_outstanding'))
+    return 'Please pay your RentAnything balance before deleting your account.';
+  if (message.includes('payment_pending_exists'))
+    return "We're still checking your last payment. You can report another once it's approved.";
+  if (message.includes('payment_not_found')) return 'This payment was already handled.';
+  if (message.includes('adjustment_invalid')) return 'Enter an amount and a note.';
   if (message.includes('phone_required'))
     return 'Add your phone number in Account before listing a vehicle.';
   if (message.includes('listing_not_available'))
