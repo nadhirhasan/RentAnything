@@ -1,11 +1,12 @@
 // Shared UI pieces matching the Figma design (Button, Chip, Tag, Toggle,
 // Field, Segmented, Section...).
 import type { LucideIcon } from 'lucide-react-native';
-import { Eye, EyeOff, Minus, Plus, X } from 'lucide-react-native';
+import { CircleHelp, Eye, EyeOff, Minus, Plus, X } from 'lucide-react-native';
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -18,6 +19,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
+import type { Help } from '@/lib/help';
 import { colors, font, radius, space } from '@/theme';
 
 type ButtonKind = 'primary' | 'whatsapp' | 'ghost' | 'soft' | 'danger';
@@ -161,23 +163,68 @@ export function Toggle({
   );
 }
 
+// Short explanation behind a "?" icon, shown in a popup.
+export type { Help };
+
+export function InfoTip({ help, size = 16 }: { help: Help; size?: number }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`What is ${help.title}?`}
+        hitSlop={10}
+        onPress={() => setOpen(true)}>
+        <CircleHelp size={size} color={colors.muted} />
+      </Pressable>
+      {open ? (
+        <Modal visible transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+          <Pressable style={styles.helpBackdrop} onPress={() => setOpen(false)} accessibilityLabel="Close">
+            <Pressable onPress={() => {}} style={styles.helpCard}>
+              <View style={styles.helpHead}>
+                <CircleHelp size={20} color={colors.primary} />
+                <Text style={styles.helpTitle}>{help.title}</Text>
+              </View>
+              <Text style={styles.helpText}>{help.text}</Text>
+              <Button label="Got it" kind="soft" size="sm" onPress={() => setOpen(false)} />
+            </Pressable>
+          </Pressable>
+        </Modal>
+      ) : null}
+    </>
+  );
+}
+
+// A label with an optional "?" help icon next to it.
+export function LabelRow({ text, help, style }: { text: string; help?: Help; style?: StyleProp<TextStyle> }) {
+  if (!help) return <Text style={style}>{text}</Text>;
+  return (
+    <View style={styles.labelRow}>
+      <Text style={[style, { flexShrink: 1 }]}>{text}</Text>
+      <InfoTip help={help} />
+    </View>
+  );
+}
+
 export function ToggleRow({
   title,
   subtitle,
   value,
   onChange,
   disabled,
+  help,
 }: {
   title: string;
   subtitle?: string;
   value: boolean;
   onChange: (v: boolean) => void;
   disabled?: boolean;
+  help?: Help;
 }) {
   return (
     <View style={styles.toggleRow}>
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={styles.toggleTitle}>{title}</Text>
+        <LabelRow text={title} help={help} style={styles.toggleTitle} />
         {subtitle ? <Text style={styles.subtle}>{subtitle}</Text> : null}
       </View>
       <Toggle value={value} onChange={onChange} disabled={disabled} label={title} />
@@ -198,9 +245,11 @@ export function Field({
   style,
   onFocus,
   onBlur,
+  help,
   ...input
 }: TextInputProps & {
   label?: string;
+  help?: Help;
   prefix?: string;
   suffix?: string;
   error?: string | null;
@@ -220,7 +269,7 @@ export function Field({
 
   return (
     <View style={[{ gap: 6 }, style]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? <LabelRow text={label} help={help} style={styles.label} /> : null}
       {/* The whole box focuses the input, not just the text area. */}
       <Pressable
         onPress={() => ref.current?.focus()}
@@ -335,16 +384,18 @@ export function Stepper({
   onChange,
   min = 1,
   max = 365,
+  help,
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
   min?: number;
   max?: number;
+  help?: Help;
 }) {
   return (
     <View style={{ gap: 6, flex: 1 }}>
-      <Text style={styles.label}>{label}</Text>
+      <LabelRow text={label} help={help} style={styles.label} />
       <View style={styles.stepper}>
         <RoundIconButton
           icon={Minus}
@@ -404,16 +455,18 @@ export function RoundIconButton({
 
 export function Section({
   title,
+  help,
   children,
   style,
 }: {
   title?: string;
+  help?: Help;
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
 }) {
   return (
     <View style={[styles.section, style]}>
-      {title ? <Text style={styles.sectionTitle}>{title}</Text> : null}
+      {title ? <LabelRow text={title} help={help} style={styles.sectionTitle} /> : null}
       {children}
     </View>
   );
@@ -426,16 +479,18 @@ export function Card({ children, style }: { children: ReactNode; style?: StylePr
 export function Group({
   title,
   subtitle,
+  help,
   children,
 }: {
   title: string;
   subtitle?: string;
+  help?: Help;
   children: ReactNode;
 }) {
   return (
     <View style={{ gap: 12 }}>
       <View style={{ gap: 2 }}>
-        <Text style={styles.groupTitle}>{title}</Text>
+        <LabelRow text={title} help={help} style={styles.groupTitle} />
         {subtitle ? <Text style={styles.subtle}>{subtitle}</Text> : null}
       </View>
       {children}
@@ -443,10 +498,10 @@ export function Group({
   );
 }
 
-export function KeyValue({ label, value, sub }: { label: string; value: string; sub?: string }) {
+export function KeyValue({ label, value, sub, help }: { label: string; value: string; sub?: string; help?: Help }) {
   return (
     <View style={styles.kv}>
-      <Text style={styles.kvLabel}>{label}</Text>
+      <LabelRow text={label} help={help} style={styles.kvLabel} />
       <View style={{ alignItems: 'flex-end', gap: 2, flexShrink: 1 }}>
         <Text style={styles.kvValue}>{value}</Text>
         {sub ? <Text style={styles.kvSub}>{sub}</Text> : null}
@@ -483,10 +538,12 @@ export function Notice({
   icon: Icon,
   text,
   tone = 'primary',
+  help,
 }: {
   icon?: LucideIcon;
   text: string;
   tone?: 'primary' | 'danger';
+  help?: Help;
 }) {
   const fg = tone === 'danger' ? colors.danger : colors.primary;
   const bg = tone === 'danger' ? '#FEF2F2' : colors.primary50;
@@ -494,6 +551,7 @@ export function Notice({
     <View style={[styles.notice, { backgroundColor: bg }]}>
       {Icon ? <Icon size={18} color={fg} /> : null}
       <Text style={{ flex: 1, color: fg, fontSize: 13, lineHeight: 18 }}>{text}</Text>
+      {help ? <InfoTip help={help} size={18} /> : null}
     </View>
   );
 }
@@ -614,6 +672,25 @@ export const styles = StyleSheet.create({
   kvLabel: { fontSize: 14, color: colors.text2, flexShrink: 0 },
   kvValue: { fontSize: 14, fontWeight: font.semibold, color: colors.ink, textAlign: 'right' },
   kvSub: { fontSize: 12, color: colors.muted, textAlign: 'right' },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
+  helpBackdrop: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: space.lg,
+  },
+  helpCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    padding: space.lg,
+    gap: space.md,
+  },
+  helpHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  helpTitle: { flex: 1, fontSize: 16, fontWeight: font.semibold, color: colors.ink },
+  helpText: { fontSize: 14, lineHeight: 21, color: colors.text2 },
   notice: {
     flexDirection: 'row',
     alignItems: 'flex-start',

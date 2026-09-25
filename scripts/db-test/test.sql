@@ -136,6 +136,8 @@ select test.eq((select array_agg(title order by distance_km)
                array['Toyota KDH High Roof', 'Toyota Axio 2015', 'Rosa Bus'], 'nearest first');
 select test.eq((select title from public.search_vehicles(7.0000, 79.9300) limit 1),
                'Toyota KDH High Roof', 'order kept by function');
+select test.eq((select s.min_days from public.search_vehicles(7.0000, 79.9300) s limit 1),
+               1::smallint, 'search returns min_days (default 1)');
 select test.eq((select total_count from public.search_vehicles(7.0000, 79.9300, page_size => 1)),
                3::bigint, 'total_count ignores paging');
 select test.eq((select count(*) from public.search_vehicles(7.0000, 79.9300, search_text => ' kandy ')),

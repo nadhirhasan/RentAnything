@@ -414,7 +414,24 @@ deals made outside the app. It's still a guess; we can't control honesty.
   request or new listing; the Messages tab offers to turn them on. Tapping one opens
   the chat, booking or payments page. Setup: README → Push notifications.
 
-## 14. Later
+## 14. Minimum hire and help icons
+
+Decided with the founder on 25 September 2026.
+
+- **Minimum hire is shown clearly.** When an owner's minimum is more than 1 day,
+  customers see it before they tap anything: a tag on the Explore card and the
+  vehicle page ("3 days minimum", "1 week minimum", "1 month minimum"), a note under
+  the title ("This vehicle can only be hired for 1 month or more (30 days)"), and on
+  the request page. The trip estimate and the calendar never go below the minimum.
+  `search_vehicles()` returns `min_days` for this. Owners see the same label under
+  the minimum rental days field.
+- **Help icons.** Terms people may not know have a "?" icon that opens a short
+  plain-English explanation (`src/lib/help.ts`): minimum hire, free km, extra km,
+  weekly / monthly offers, double seat, self-drive, driver price, deposit, documents,
+  fuel policy, availability, night-to-night rentals, estimated total, agreed price,
+  handover code, RentAnything fee, owner balance and hidden phone numbers in chat.
+
+## 15. Later
 
 Verification badges, online payments (PayHere),
 featured listings for owners, Sinhala / Tamil, phone OTP login, house rentals and

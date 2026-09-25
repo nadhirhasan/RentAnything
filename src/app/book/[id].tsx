@@ -7,7 +7,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DatesSheet } from '@/components/booking';
 import { useFeedback } from '@/components/feedback';
 import { EmptyState, Screen, SignInPrompt } from '@/components/layout';
-import { Button, Divider, Field, KeyValue, Notice, RoundIconButton, Section, Segmented, Skeleton } from '@/components/ui';
+import {
+  Button,
+  Divider,
+  Field,
+  InfoTip,
+  KeyValue,
+  Notice,
+  RoundIconButton,
+  Section,
+  Segmented,
+  Skeleton,
+  type Help,
+} from '@/components/ui';
 import { VehiclePhoto } from '@/components/vehicle';
 import { useAuth } from '@/lib/auth';
 import {
@@ -25,6 +37,7 @@ import {
 import { getBookedDates, requestBooking } from '@/lib/bookings';
 import { askForNotifications } from '@/lib/push';
 import { colomboDate, formatLKPhone, formatLKR, isValidLKPhone } from '@/lib/format';
+import { HELP, minHireSentence } from '@/lib/help';
 import { useUserLocation } from '@/lib/location';
 import { estimateTrip } from '@/lib/pricing';
 import { friendlyError, supabase } from '@/lib/supabase';
@@ -207,7 +220,11 @@ function BookingForm({
 
           <Section title="When do you need it?">
             {minDays > 1 ? (
-              <Notice icon={CalendarDays} text={`This owner rents for at least ${formatDays(minDays)}.`} />
+              <Notice
+                icon={CalendarDays}
+                text={minHireSentence(minDays) ?? `This owner rents for at least ${formatDays(minDays)}.`}
+                help={HELP.minDays}
+              />
             ) : null}
             <Pressable
               accessibilityRole="button"
@@ -239,7 +256,7 @@ function BookingForm({
           </Section>
 
           {start && times ? (
-            <Section title="Collect and return">
+            <Section title="Collect and return" help={HELP.nightToNight}>
               <View style={styles.handover}>
                 <KeyValue label="Collect" value={times.collect} />
                 <KeyValue label="Return" value={times.back} />
@@ -253,7 +270,7 @@ function BookingForm({
           ) : null}
 
           {v.self_drive && v.driver_available ? (
-            <Section title="Driver">
+            <Section title="Driver" help={HELP.driver}>
               <Segmented
                 options={[
                   { value: false, label: 'Self-drive' },
@@ -307,7 +324,7 @@ function BookingForm({
               />
             ) : null}
             <Divider />
-            <KeyValue label="Estimated total" value={formatLKR(estimate.total)} />
+            <KeyValue label="Estimated total" help={HELP.estimate} value={formatLKR(estimate.total)} />
             <Text style={styles.note}>
               {v.km_per_day
                 ? `Includes ${v.km_per_day} km a day; extra km ${formatLKR(v.extra_km_rate ?? 0)} each. `
@@ -322,6 +339,7 @@ function BookingForm({
             <Step n={2} text="Meet the owner and check the vehicle and documents." />
             <Step
               n={3}
+              help={HELP.handoverCode}
               text="Happy with it? Show the owner your 4-digit code and pay them in cash. Not happy? Tap No deal."
             />
             <Notice icon={Banknote} text="You don't pay anything in the app. Never send money before seeing the vehicle." />
@@ -372,13 +390,14 @@ function TopBar({ onBack }: { onBack: () => void }) {
   );
 }
 
-function Step({ n, text }: { n: number; text: ReactNode }) {
+function Step({ n, text, help }: { n: number; text: ReactNode; help?: Help }) {
   return (
     <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
       <View style={styles.stepNum}>
         <Text style={styles.stepNumText}>{n}</Text>
       </View>
       <Text style={[styles.body, { flex: 1 }]}>{text}</Text>
+      {help ? <InfoTip help={help} /> : null}
     </View>
   );
 }

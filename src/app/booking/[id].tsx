@@ -33,6 +33,7 @@ import { OptionSheet } from '@/components/sheet';
 import { Button, Chip, Divider, Field, KeyValue, Notice, RoundIconButton, Section, Skeleton, Wrap } from '@/components/ui';
 import { VehiclePhoto } from '@/components/vehicle';
 import { useAuth } from '@/lib/auth';
+import { HELP } from '@/lib/help';
 import {
   CANCEL_REASONS,
   commissionFor,
@@ -235,7 +236,7 @@ export default function BookingScreen() {
 
         {/* Customer: handover code */}
         {!owner && b.state === 'accepted' && b.handover_code ? (
-          <Section title="Your handover code">
+          <Section title="Your handover code" help={HELP.handoverCode}>
             <View style={styles.codeBox}>
               <KeyRound size={22} color={colors.primary} />
               <Text style={styles.code} selectable accessibilityLabel={`Code ${b.handover_code.split('').join(' ')}`}>
@@ -278,7 +279,7 @@ export default function BookingScreen() {
           <ChevronRight size={18} color={colors.muted} />
         </Pressable>
 
-        <Section title="Trip">
+        <Section title="Trip" help={HELP.nightToNight}>
           <KeyValue label="Collect" value={handover(b.start_date, b.days, b.pickup).collect} />
           <KeyValue label="Return" value={handover(b.start_date, b.days, b.pickup).back} />
           <KeyValue
@@ -289,13 +290,14 @@ export default function BookingScreen() {
           <KeyValue label="Driver" value={b.with_driver ? 'With driver' : 'Self-drive'} />
           <Divider />
           {b.agreed_total != null ? (
-            <KeyValue label="Agreed price" value={formatLKR(b.agreed_total)} sub="Paid to the owner in cash" />
+            <KeyValue label="Agreed price" help={HELP.agreedPrice} value={formatLKR(b.agreed_total)} sub="Paid to the owner in cash" />
           ) : (
-            <KeyValue label="Estimated price" value={formatLKR(b.estimate)} sub="Final price agreed at pickup" />
+            <KeyValue label="Estimated price" help={HELP.estimate} value={formatLKR(b.estimate)} sub="Final price agreed at pickup" />
           )}
           {owner && b.commission != null ? (
             <KeyValue
               label={`RentAnything fee (${b.commission_percent}%)`}
+              help={HELP.fee}
               value={formatLKR(b.commission)}
               sub="Added to your balance"
             />
@@ -681,6 +683,7 @@ function StartSheet({
             </Text>
             <Field
               label="Customer's code"
+              help={HELP.handoverCode}
               value={code}
               onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, 4))}
               keyboardType="number-pad"
@@ -691,6 +694,7 @@ function StartSheet({
             />
             <Field
               label="Agreed price"
+              help={HELP.agreedPrice}
               prefix="Rs"
               value={amount}
               onChangeText={(t) => setAmount(formatAmountInput(t))}

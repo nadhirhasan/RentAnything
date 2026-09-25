@@ -1,11 +1,12 @@
 import { Image } from 'expo-image';
 import { Link } from 'expo-router';
-import { Armchair, Car, Gauge, MapPin, Snowflake, Tag as TagIcon, User, Users } from 'lucide-react-native';
+import { Armchair, CalendarClock, Car, Gauge, MapPin, Snowflake, Tag as TagIcon, User, Users } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { RatingBadge } from '@/components/reviews';
 import { Skeleton, Tag } from '@/components/ui';
 import { formatDistance, formatKm, formatLKR } from '@/lib/format';
+import { minHireLabel } from '@/lib/help';
 import { photoUrl } from '@/lib/supabase';
 import type { VehicleSummary } from '@/lib/vehicles';
 import { colors, font, radius } from '@/theme';
@@ -78,6 +79,7 @@ export function hireModeLabel(v: { self_drive: boolean; driver_available: boolea
 
 export function VehicleCard({ v }: { v: VehicleSummary }) {
   const offer = offerLabel(v);
+  const minHire = minHireLabel(v.min_days);
   const distance = formatDistance(v.distance_km);
   return (
     <Link href={{ pathname: '/vehicle/[id]', params: { id: v.id } }} asChild>
@@ -129,7 +131,12 @@ export function VehicleCard({ v }: { v: VehicleSummary }) {
               />
             ) : null}
           </View>
-          {offer ? <Tag icon={TagIcon} label={offer} tone="offer" /> : null}
+          {minHire || offer ? (
+            <View style={styles.tags}>
+              {minHire ? <Tag icon={CalendarClock} label={minHire} tone="primary" /> : null}
+              {offer ? <Tag icon={TagIcon} label={offer} tone="offer" /> : null}
+            </View>
+          ) : null}
         </View>
       </Pressable>
     </Link>

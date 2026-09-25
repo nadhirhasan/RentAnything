@@ -30,7 +30,7 @@ import { useFeedback } from '@/components/feedback';
 import { EmptyState, Screen, SignInPrompt } from '@/components/layout';
 import { ReportSheet } from '@/components/report-sheet';
 import { OptionSheet } from '@/components/sheet';
-import { Button, RoundIconButton, Skeleton, webNoOutline } from '@/components/ui';
+import { Button, InfoTip, RoundIconButton, Skeleton, webNoOutline } from '@/components/ui';
 import { VehiclePhoto } from '@/components/vehicle';
 import { useAuth } from '@/lib/auth';
 import {
@@ -45,6 +45,7 @@ import {
   type ChatMessage,
   type Conversation,
 } from '@/lib/chat';
+import { HELP } from '@/lib/help';
 import { formatChatDay, formatChatTime, looksLikeContact, mergeMessages, sameChatDay } from '@/lib/chat-rules';
 import { formatLKR, telUrl, whatsappUrl } from '@/lib/format';
 import { useMessages } from '@/lib/messages';
@@ -476,7 +477,10 @@ function Composer({
   return (
     <View style={[styles.composer, { paddingBottom: Math.max(10, insets.bottom) }]}>
       {warnContact ? (
-        <Text style={styles.warn}>Phone numbers, emails and links are hidden until the owner accepts a booking.</Text>
+        <View style={styles.warnRow}>
+          <Text style={styles.warn}>Phone numbers, emails and links are hidden until the owner accepts a booking.</Text>
+          <InfoTip help={HELP.hiddenNumbers} size={14} />
+        </View>
       ) : null}
       <View style={styles.composerRow}>
         <TextInput
@@ -657,5 +661,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  warn: { fontSize: 12, color: colors.offerText, textAlign: 'center' },
+  warnRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  warn: { fontSize: 12, color: colors.offerText, textAlign: 'center', flexShrink: 1 },
 });
