@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   CircleAlert,
   EyeOff,
+  Flag,
   Gauge,
   MapPin,
   MessageCircle,
@@ -48,8 +49,12 @@ import {
 } from '@/components/ui';
 import { useFeedback } from '@/components/feedback';
 import { PhotoViewer } from '@/components/photo-viewer';
+import { ReportSheet } from '@/components/report-sheet';
+import { RatingBadge, ReviewsSection } from '@/components/reviews';
 import { VehiclePhoto } from '@/components/vehicle';
 import { useAuth } from '@/lib/auth';
+import { contactSupport, hasSupport } from '@/lib/support';
+import { LISTING_REPORT_REASONS, reportListing } from '@/lib/trust';
 import { formatDistance, formatKm, formatLKR, parseAmount, telUrl, whatsappUrl } from '@/lib/format';
 import { useUserLocation } from '@/lib/location';
 import { estimateTrip } from '@/lib/pricing';
@@ -139,6 +144,7 @@ export default function VehicleScreen() {
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [reporting, setReporting] = useState(false);
 
   const share = async () => {
     if (!v) return;
@@ -192,11 +198,27 @@ export default function VehicleScreen() {
         />
 
         {!v.is_live ? (
-          <View style={{ padding: 16, backgroundColor: colors.white }}>
+          <View style={{ padding: 16, gap: 10, backgroundColor: colors.white }}>
             <Notice
               icon={EyeOff}
-              text="Only you can see this. The vehicle is switched off, so it isn't in search results."
+              tone={v.hidden_reason ? 'danger' : 'primary'}
+              text={
+                v.hidden_reason === 'reports'
+                  ? 'Hidden while we review reports from customers. Only you can see it.'
+                  : v.hidden_reason === 'admin'
+                    ? 'Hidden by RentAnything. Only you can see it.'
+                    : "Only you can see this. The vehicle is switched off, so it isn't in search results."
+              }
             />
+            {v.hidden_reason && hasSupport ? (
+              <Button
+                label="Contact support on WhatsApp"
+                kind="whatsapp"
+                size="sm"
+                icon={MessageCircle}
+                onPress={() => contactSupport(`Hi RentAnything, my listing "${v.title}" was hidden. Can you help?`)}
+              />
+            ) : null}
           </View>
         ) : null}
 
@@ -206,6 +228,9 @@ export default function VehicleScreen() {
             {v.is_live ? <Tag label="Available now" icon={Check} tone="success" /> : null}
           </View>
           <Text style={styles.title}>{v.title}</Text>
+          {v.rating_avg != null ? (
+            <RatingBadge avg={v.rating_avg} count={v.rating_count} />
+          ) : null}
           <Text style={styles.sub}>
             {[
               v.year,
@@ -316,6 +341,8 @@ export default function VehicleScreen() {
           </Section>
         ) : null}
 
+        <ReviewsSection v={v} />
+
         <Section>
           <View style={[styles.row, { gap: 12 }]}>
             <View style={styles.ownerAvatar}>
@@ -326,10 +353,39 @@ export default function VehicleScreen() {
               <Text style={styles.sub}>
                 Owner · {v.owner_listing_count} vehicle{v.owner_listing_count === 1 ? '' : 's'} listed
               </Text>
+              {v.owner_rating_avg != null ? (
+                <Text style={styles.sub}>
+                  ★ {Number(v.owner_rating_avg).toFixed(1)} across all their vehicles ({v.owner_rating_count})
+                </Text>
+              ) : null}
             </View>
           </View>
         </Section>
+
+        {!v.is_mine ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() =>
+              session ? setReporting(true) : router.push({ pathname: '/sign-in', params: { reason: 'contact' } })
+            }
+            style={styles.reportLink}>
+            <Flag size={14} color={colors.muted} />
+            <Text style={styles.reportText}>Report this listing</Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
+
+      <ReportSheet
+        visible={reporting}
+        title="Report this listing"
+        subtitle="Help us keep RentAnything safe. What's wrong?"
+        reasons={LISTING_REPORT_REASONS}
+        onClose={() => setReporting(false)}
+        onSubmit={async (reason, note) => {
+          await reportListing(v.id, reason, note);
+          toast("Thanks, we'll review this listing");
+        }}
+      />
 
       <View style={[styles.contactBar, { paddingBottom: Math.max(16, insets.bottom + 8) }]}>
         <View style={styles.contactInner}>
@@ -591,6 +647,14 @@ const styles = StyleSheet.create({
   ownerInitials: { fontSize: 15, fontWeight: font.bold, color: colors.primary },
   ownerName: { fontSize: 15, fontWeight: font.semibold, color: colors.ink },
   pager: { width: '100%', aspectRatio: 4 / 3, maxHeight: 440 },
+  reportLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 16,
+  },
+  reportText: { fontSize: 13, color: colors.muted, textDecorationLine: 'underline' },
   photoButton: { position: 'absolute' },
   dots: {
     position: 'absolute',

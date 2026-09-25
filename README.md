@@ -49,6 +49,8 @@ cp .env.example .env
 Fill in `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` from
 **Project Settings → API** (use the publishable key, `sb_publishable_…`).
 For the live project the URL is `https://vqdngaqjrucwbmlwfcso.supabase.co`.
+Set `EXPO_PUBLIC_SUPPORT_WHATSAPP` to the support WhatsApp number (e.g.
+`94771234567`); the Help & support buttons are hidden while it's empty.
 
 ### 3. Run it
 

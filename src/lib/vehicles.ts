@@ -19,7 +19,7 @@ export type FuelPolicy = 'same_level' | 'pay_used' | 'included';
 export type DocumentKind = 'nic' | 'driving_licence' | 'proof_of_address' | 'guarantor';
 export type ContactChannel = 'call' | 'whatsapp';
 export type DriverMode = 'with_driver' | 'self_drive';
-export type SortBy = 'nearest' | 'price';
+export type SortBy = 'nearest' | 'price' | 'rating';
 
 export const VEHICLE_TYPES: { value: VehicleType; label: string }[] = [
   { value: 'car', label: 'Car' },
@@ -129,6 +129,8 @@ export type VehicleSummary = {
   driver_available: boolean;
   driver_price_per_day: number | null;
   cover_photo: string | null;
+  rating_avg: number | null; // only when there are 3+ reviews
+  rating_count: number;
   total_count: number;
 };
 
@@ -176,8 +178,15 @@ export type VehicleDetail = {
   town: string;
   distance_km: number | null;
   is_live: boolean;
+  is_mine: boolean;
+  hidden_reason: 'reports' | 'admin' | null; // only for the owner
   owner_name: string;
   owner_listing_count: number;
+  owner_rating_avg: number | null;
+  owner_rating_count: number;
+  rating_avg: number | null;
+  rating_count: number;
+  verified_count: number;
   photos: string[];
   vehicle_type: VehicleType;
   make: string;
@@ -240,8 +249,15 @@ export type VehicleDetailsRow = Omit<
   | 'town'
   | 'distance_km'
   | 'is_live'
+  | 'is_mine'
+  | 'hidden_reason'
   | 'owner_name'
   | 'owner_listing_count'
+  | 'owner_rating_avg'
+  | 'owner_rating_count'
+  | 'rating_avg'
+  | 'rating_count'
+  | 'verified_count'
   | 'photos'
 >;
 
@@ -255,13 +271,14 @@ export type MyListing = {
   is_available: boolean;
   available_again_on: string | null;
   is_hidden: boolean;
+  hidden_reason: 'reports' | 'admin' | null;
   created_at: string;
   vehicle_details: VehicleDetailsRow | null;
   listing_photos: { id: string; path: string; position: number }[];
 };
 
 const MY_LISTING_COLUMNS =
-  'id, title, description, lat, lng, town, is_available, available_again_on, is_hidden, created_at, vehicle_details(*), listing_photos(id, path, position)';
+  'id, title, description, lat, lng, town, is_available, available_again_on, is_hidden, hidden_reason, created_at, vehicle_details(*), listing_photos(id, path, position)';
 
 export async function getMyListings(): Promise<MyListing[]> {
   const { data, error } = await supabase

@@ -268,7 +268,15 @@ export default function SignInScreen() {
               </Pressable>
               {mode === 'signup' ? (
                 <Text style={styles.small}>
-                  By creating an account you agree to be contacted by customers about your listings.
+                  By creating an account you agree to our{' '}
+                  <Text style={styles.smallLink} onPress={() => router.push('/terms')} accessibilityRole="link">
+                    Terms of use
+                  </Text>{' '}
+                  and{' '}
+                  <Text style={styles.smallLink} onPress={() => router.push('/privacy')} accessibilityRole="link">
+                    Privacy policy
+                  </Text>
+                  .
                 </Text>
               ) : null}
             </>
@@ -293,6 +301,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: font.bold, color: colors.ink, textAlign: 'center' },
   text: { fontSize: 14, color: colors.text2, textAlign: 'center', lineHeight: 20 },
   small: { fontSize: 12, color: colors.muted, textAlign: 'center', lineHeight: 17 },
+  smallLink: { color: colors.text2, textDecorationLine: 'underline' },
   form: { gap: 16, alignSelf: 'stretch', marginTop: 6 },
   switch: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: 4, paddingVertical: 8 },
   link: { fontSize: 14, lineHeight: 20, fontWeight: font.semibold, color: colors.primary },

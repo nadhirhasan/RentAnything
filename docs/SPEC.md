@@ -202,7 +202,14 @@ vehicle_details  listing_id, vehicle_type, make, model, year, seats, double_seat
                  deposit, documents[], fuel_policy, terms_notes
 listing_photos   id, listing_id, path, position
 contact_events   id, listing_id, user_id, channel (call / whatsapp), created_at
+reviews          id, listing_id, reviewer_id, rating, condition/owner/value ratings,
+                 tags[], comment, owner_reply, is_hidden, created_at
+hire_confirmations  listing_id, customer_id, confirmed_at
+contact_feedback listing_id, user_id, owner_answered, info_accurate
+reports          id, reporter_id, listing_id, review_id (null = listing), reason, note, status
 ```
+
+Listings also have `hidden_reason` ('reports' / 'admin') and `hidden_at`.
 
 - `search_vehicles(lat, lng, filters…)` — Postgres function, returns live listings
   ordered by distance.
@@ -235,6 +242,8 @@ Built in v1 (September 2026):
 - Figma design: 10 screens + style sheet.
 - Database migration with RLS, distance search, contact gate, photo storage, and tests.
 - Expo app: every screen in section 9, working on web; Android / iOS run via Expo Go.
+- Trust & safety (section 11): reports and moderation, ratings, legal pages,
+  account deletion, contact limit, photo compression, app icon.
 
 Differences from the Figma design:
 
@@ -245,8 +254,50 @@ Differences from the Figma design:
   bottom sheet; the vehicle page has a share button and shows the price on the contact
   bar.
 
-## 11. Later
+## 11. Trust & safety
 
-Verification badges, reviews, booking requests with calendar, featured listings for
+Decided with the founder on 25 September 2026.
+
+### 11.1 Reporting and moderation
+
+- Any signed-in user can report a listing (reason + optional note) or a review.
+  Max 10 reports per user per day; owners can't report their own listing.
+- A listing reported by **3 different people** (open reports) is hidden
+  automatically (`hidden_reason = 'reports'`) until an admin checks it.
+- Admin (`profiles.is_admin`, the founder: nadhirupwork@gmail.com) has a
+  **Moderation** screen (Account → Moderation): report queue and hidden listings,
+  with hide / unhide / dismiss for listings and hide / keep for reviews.
+- The owner sees "Hidden by RentAnything" on the vehicle and a button to contact
+  support on WhatsApp (`EXPO_PUBLIC_SUPPORT_WHATSAPP`).
+
+### 11.2 Ratings
+
+Spam protection: we can't know if a hire happened, so reviews are tied to contacts.
+
+- Only a user who tapped Call / WhatsApp on the listing can review it, from **1 day
+  to 60 days** after the contact. One review per user per listing.
+- When the owner switches a vehicle off they're asked **"Who rented it?"** (people
+  who contacted them in the last 14 days). A confirmed hire (within 30 days) gives
+  the review a **Verified hire** badge.
+- Customers who didn't rent answer quick feedback instead (did the owner answer,
+  was the info accurate). This isn't public.
+- Review: overall 1–5 stars, optional condition / owner / value stars, tags, comment.
+  The owner can reply once, publicly. Reviews can be reported.
+- The rating is shown only at **3+ reviews**, as a Bayesian average
+  `(3 × 4.0 + sum) / (3 + n)`. Explore can sort by "Top rated".
+- Reviewers are shown as first name + last initial.
+
+### 11.3 Other launch items
+
+- Anti-scraping: `get_listing_contact` allows 30 different listings per user per day.
+- Photos are resized to max 1600 px, JPEG 72 %, EXIF (GPS) stripped before upload.
+- Privacy policy (`/privacy`), Terms of use (`/terms`), account deletion
+  (`/delete-account`, and Account → Delete account) — needed for Play Store.
+- App id `lk.rentanything.app` (Android package and iOS bundle id). New icon and
+  splash in `assets/brand/`.
+
+## 12. Later
+
+Verification badges, booking requests with calendar, featured listings for
 owners, Sinhala / Tamil, phone OTP login, push notifications, house rentals and other
 categories.

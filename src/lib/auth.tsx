@@ -8,6 +8,7 @@ export type Profile = {
   full_name: string;
   phone: string | null;
   whatsapp: string | null;
+  is_admin: boolean;
 };
 
 type AuthState = {
@@ -36,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const { data } = await supabase
       .from('profiles')
-      .select('id, full_name, phone, whatsapp')
+      .select('id, full_name, phone, whatsapp, is_admin')
       .eq('id', userId)
       .maybeSingle();
     setProfile((data as Profile | null) ?? null);
