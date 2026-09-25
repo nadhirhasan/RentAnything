@@ -19,6 +19,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
+import { settleStepper, stepperDigits } from '@/lib/format';
 import type { Help } from '@/lib/help';
 import { colors, font, radius, space } from '@/theme';
 
@@ -393,6 +394,21 @@ export function Stepper({
   max?: number;
   help?: Help;
 }) {
+  // Text being typed; null when the field isn't being edited.
+  const [draft, setDraft] = useState<string | null>(null);
+  const typed = draft === null ? null : parseInt(draft, 10);
+  const rangeHint =
+    typed === null || !Number.isFinite(typed) ? null : typed < min ? `At least ${min}` : typed > max ? `At most ${max}` : null;
+  const step = (v: number) => {
+    setDraft(null);
+    onChange(v);
+  };
+  const settle = () => {
+    if (draft === null) return;
+    const v = settleStepper(draft, value, min, max);
+    setDraft(null);
+    if (v !== value) onChange(v);
+  };
   return (
     <View style={{ gap: 6, flex: 1 }}>
       <LabelRow text={label} help={help} style={styles.label} />
@@ -400,17 +416,34 @@ export function Stepper({
         <RoundIconButton
           icon={Minus}
           label={`Decrease ${label}`}
-          onPress={() => onChange(Math.max(min, value - 1))}
+          onPress={() => step(Math.max(min, value - 1))}
           disabled={value <= min}
         />
-        <Text style={{ fontSize: 16, fontWeight: font.semibold, color: colors.ink }}>{value}</Text>
+        <TextInput
+          accessibilityLabel={label}
+          value={draft ?? String(value)}
+          onChangeText={(t) => {
+            const digits = stepperDigits(t, max);
+            setDraft(digits);
+            const n = parseInt(digits, 10);
+            if (n >= min && n <= max && n !== value) onChange(n);
+          }}
+          onBlur={settle}
+          onSubmitEditing={settle}
+          keyboardType="number-pad"
+          returnKeyType="done"
+          selectTextOnFocus
+          maxLength={String(max).length}
+          style={[styles.stepperInput, webNoOutline]}
+        />
         <RoundIconButton
           icon={Plus}
           label={`Increase ${label}`}
-          onPress={() => onChange(Math.min(max, value + 1))}
+          onPress={() => step(Math.min(max, value + 1))}
           disabled={value >= max}
         />
       </View>
+      {rangeHint ? <Text style={styles.hint}>{rangeHint}</Text> : null}
     </View>
   );
 }
@@ -656,6 +689,15 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.white,
+  },
+  stepperInput: {
+    flex: 1,
+    minWidth: 48,
+    paddingVertical: 6,
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: font.semibold,
+    color: colors.ink,
   },
   section: { backgroundColor: colors.white, padding: space.lg, gap: space.md },
   sectionTitle: { fontSize: 16, fontWeight: font.semibold, color: colors.ink },
