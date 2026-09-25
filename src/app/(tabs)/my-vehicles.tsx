@@ -3,12 +3,14 @@ import { Calendar, Car, Check, Eye, EyeOff, Info, MessageCircle, Pencil, Plus } 
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
+import { DuesBanner } from '@/components/booking';
 import { useFeedback } from '@/components/feedback';
 import { EmptyState, Screen, SignInPrompt } from '@/components/layout';
 import { OptionSheet } from '@/components/sheet';
 import { Button, Divider, Notice, Skeleton, Tag, Toggle } from '@/components/ui';
 import { VehiclePhoto } from '@/components/vehicle';
 import { useAuth } from '@/lib/auth';
+import { getMyDues, type MyDues } from '@/lib/bookings';
 import { colomboDate, formatDateShort, formatLKR } from '@/lib/format';
 import { friendlyError } from '@/lib/supabase';
 import { contactSupport, hasSupport } from '@/lib/support';
@@ -29,6 +31,7 @@ const BACK_ON_OPTIONS: { label: string; value: number }[] = [
 export default function MyVehiclesScreen() {
   const { session } = useAuth();
   const [items, setItems] = useState<MyListing[] | null>(null);
+  const [dues, setDues] = useState<MyDues | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -36,7 +39,9 @@ export default function MyVehiclesScreen() {
     if (!session) return;
     try {
       setError(null);
-      setItems(await getMyListings());
+      const [listings, d] = await Promise.all([getMyListings(), getMyDues().catch(() => null)]);
+      setItems(listings);
+      setDues(d);
     } catch (e) {
       setError(friendlyError(e));
     } finally {
@@ -100,10 +105,13 @@ export default function MyVehiclesScreen() {
           }
           ListHeaderComponent={
             items.length ? (
-              <Notice
-                icon={Info}
-                text="Switch a vehicle off when it's out on hire. It disappears from search, so you won't get calls."
-              />
+              <View style={{ gap: 12 }}>
+                <DuesBanner dues={dues} />
+                <Notice
+                  icon={Info}
+                  text="Switch a vehicle off when it's out on hire. It disappears from search, so you won't get calls. Vehicles switch off by themselves when a booking starts."
+                />
+              </View>
             ) : null
           }
           ListEmptyComponent={

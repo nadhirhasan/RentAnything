@@ -1,6 +1,7 @@
 import { createURL } from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
+  CalendarCheck,
   Check,
   ChevronLeft,
   CircleAlert,
@@ -100,7 +101,7 @@ export default function VehicleScreen() {
 
   // Contact: sign-in is required. If the user isn't signed in we remember
   // what they tapped and continue once they come back signed in.
-  const pending = useRef<ContactChannel | null>(null);
+  const pending = useRef<ContactChannel | 'book' | null>(null);
   const [contacting, setContacting] = useState<ContactChannel | null>(null);
   const [contactError, setContactError] = useState<string | null>(null);
   const [revealed, setRevealed] = useState<string | null>(null);
@@ -133,13 +134,23 @@ export default function VehicleScreen() {
     }
   }, [v, session]);
 
-  useEffect(() => {
-    const channel = pending.current;
-    if (session && channel) {
-      pending.current = null;
-      Promise.resolve().then(() => contact(channel));
+  const book = useCallback(() => {
+    if (!v) return;
+    if (!session) {
+      pending.current = 'book';
+      router.push({ pathname: '/sign-in', params: { reason: 'book' } });
+      return;
     }
-  }, [session, contact]);
+    router.push({ pathname: '/book/[id]', params: { id: v.id } });
+  }, [v, session]);
+
+  useEffect(() => {
+    const action = pending.current;
+    if (session && action) {
+      pending.current = null;
+      Promise.resolve().then(() => (action === 'book' ? book() : contact(action)));
+    }
+  }, [session, contact, book]);
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -405,22 +416,30 @@ export default function VehicleScreen() {
               </Text>
               <Text style={styles.barPer}>per day</Text>
             </View>
-            <Button
-              label="WhatsApp"
-              kind="whatsapp"
+            <IconAction
               icon={MessageCircle}
-              style={styles.barButton}
+              label="WhatsApp the owner"
+              background={colors.whatsapp}
+              color={colors.white}
               loading={contacting === 'whatsapp'}
               disabled={!v.is_live}
               onPress={() => contact('whatsapp')}
             />
-            <Button
-              label="Call"
+            <IconAction
               icon={Phone}
-              style={styles.barButton}
+              label="Call the owner"
+              background={colors.primary50}
+              color={colors.primary}
               loading={contacting === 'call'}
               disabled={!v.is_live}
               onPress={() => contact('call')}
+            />
+            <Button
+              label="Book"
+              icon={CalendarCheck}
+              style={styles.barButton}
+              disabled={!v.is_live || v.is_mine}
+              onPress={book}
             />
           </View>
         </View>
@@ -573,6 +592,39 @@ function TripEstimate({ v }: { v: VehicleDetail }) {
   );
 }
 
+function IconAction({
+  icon: Icon,
+  label,
+  background,
+  color,
+  loading,
+  disabled,
+  onPress,
+}: {
+  icon: LucideIcon;
+  label: string;
+  background: string;
+  color: string;
+  loading?: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: disabled || loading }}
+      disabled={disabled || loading}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.iconAction,
+        { backgroundColor: background, opacity: disabled ? 0.5 : pressed ? 0.85 : 1 },
+      ]}>
+      {loading ? <ActivityIndicator color={color} /> : <Icon size={22} color={color} />}
+    </Pressable>
+  );
+}
+
 function SpecTile({ icon: Icon, value, label }: { icon: LucideIcon; value: string; label: string }) {
   return (
     <View style={styles.tile}>
@@ -670,6 +722,7 @@ const styles = StyleSheet.create({
   barPrice: { fontSize: 17, fontWeight: font.bold, color: colors.ink },
   barPer: { fontSize: 12, color: colors.muted },
   barButton: { flex: 1, paddingHorizontal: 10 },
+  iconAction: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
   counter: {
     position: 'absolute',
     right: 16,

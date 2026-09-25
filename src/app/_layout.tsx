@@ -31,6 +31,9 @@ export default function RootLayout() {
                 <Stack.Screen name="sign-in" options={{ presentation: 'modal' }} />
                 <Stack.Screen name="reset-password" />
                 <Stack.Screen name="admin" />
+                <Stack.Screen name="book/[id]" />
+                <Stack.Screen name="booking/[id]" />
+                <Stack.Screen name="dues" />
                 <Stack.Screen name="review/[id]" />
                 <Stack.Screen name="privacy" />
                 <Stack.Screen name="terms" />

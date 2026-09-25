@@ -1,6 +1,7 @@
 import { createURL } from 'expo-linking';
 import { router, useFocusEffect } from 'expo-router';
 import {
+  CalendarCheck,
   Car,
   ChevronRight,
   FileText,
@@ -10,6 +11,7 @@ import {
   ShieldCheck,
   Star,
   Trash2,
+  Wallet,
 } from 'lucide-react-native';
 import { useCallback, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -116,6 +118,18 @@ export default function AccountScreen() {
 
         <Card style={{ paddingVertical: 4, gap: 0 }}>
           <MenuRow icon={<Car size={20} color={colors.ink} />} label="My vehicles" onPress={() => router.navigate('/my-vehicles')} />
+          <Divider />
+          <MenuRow
+            icon={<CalendarCheck size={20} color={colors.ink} />}
+            label="Bookings"
+            onPress={() => router.navigate('/bookings')}
+          />
+          <Divider />
+          <MenuRow
+            icon={<Wallet size={20} color={colors.ink} />}
+            label="Payments to RentAnything"
+            onPress={() => router.push('/dues')}
+          />
           {profile?.is_admin ? (
             <>
               <Divider />

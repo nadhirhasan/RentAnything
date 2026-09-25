@@ -28,6 +28,14 @@ export default function PrivacyScreen() {
         lets owners confirm who rented from them and decides who can leave a review.
       </Li>
       <Li>
+        <B>Bookings:</B> the dates, driver option, your message to the owner, the agreed price, what happened at
+        pickup, and ratings owners give customers.
+      </Li>
+      <Li>
+        <B>Owner payments:</B> the fees you owe RentAnything and the payments you report (amount, method and
+        reference).
+      </Li>
+      <Li>
         <B>Reviews, feedback and reports</B> you submit.
       </Li>
 
@@ -50,6 +58,11 @@ export default function PrivacyScreen() {
       <Li>
         <B>Owners:</B> the names of people who contacted them about a listing in the last 14 days, to confirm who
         rented it.
+      </Li>
+      <Li>
+        <B>When you send a booking request:</B> the owner sees your name, how long you&apos;ve been on
+        RentAnything, your number of rentals and the ratings other owners gave you. Once they accept, you both see
+        each other&apos;s phone number.
       </Li>
       <Li>Reports are private. Owners never see who reported them.</Li>
 
