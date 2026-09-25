@@ -14,7 +14,6 @@ import {
   isValidHandoverCode,
   lastDay,
   monthWeeks,
-  nightBeforePossible,
   overlapsBooked,
   pickupDay,
   reasonLabel,
@@ -79,8 +78,6 @@ test('night-before pickup: collect the evening before, return on the last night'
   // "I need it on the 27th": collect 26th evening, back 27th night, 1 day.
   assert.deepEqual(handover('2026-09-27', 1, 'night_before'), { collect: 'Sat 26 Sep, evening', back: 'Sun 27 Sep, night' });
   assert.deepEqual(handover('2026-09-27', 3, 'morning'), { collect: 'Sun 27 Sep, morning', back: 'Tue 29 Sep, night' });
-  assert.equal(nightBeforePossible('2026-09-26', '2026-09-25'), true); // collect tonight
-  assert.equal(nightBeforePossible('2026-09-25', '2026-09-25'), false); // trip today
 });
 
 test('calendar: tap the first day, then the last day', () => {

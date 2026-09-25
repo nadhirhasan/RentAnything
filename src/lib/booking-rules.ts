@@ -260,11 +260,6 @@ export function pickupDay(start: string, pickup: Pickup): string {
   return pickup === 'night_before' ? addDays(start, -1) : start;
 }
 
-// Collecting the evening before a trip that starts today is already past.
-export function nightBeforePossible(start: string, today: string): boolean {
-  return addDays(start, -1) >= today;
-}
-
 // { collect: "Sat 26 Sep, evening", back: "Sun 27 Sep, night" }
 export function handover(start: string, days: number, pickup: Pickup): { collect: string; back: string } {
   return {

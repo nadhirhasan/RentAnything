@@ -18,7 +18,6 @@ import {
   formatRange,
   handover,
   lastDay,
-  nightBeforePossible,
   overlapsBooked,
   type DateRange,
   type Pickup,
@@ -142,8 +141,6 @@ function BookingForm({
   const { start, end } = range;
   const days = start && end ? daysBetween(start, end) : minDays;
   const [withDriver, setWithDriver] = useState(!v.self_drive);
-  // The usual way here: collect the evening before, return on the last night.
-  const [pickupChoice, setPickupChoice] = useState<Pickup>('night_before');
   const [note, setNote] = useState('');
   const [phone, setPhone] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -152,8 +149,9 @@ function BookingForm({
 
   const estimate = useMemo(() => estimateTrip(v, days, 0, withDriver), [v, days, withDriver]);
   const clash = start != null && overlapsBooked(start, days, booked);
-  const canNightBefore = start != null && nightBeforePossible(start, today);
-  const pickup: Pickup = canNightBefore ? pickupChoice : 'morning';
+  // Rentals run night to night: collect the evening before the first day,
+  // return on the night of the last day. (Morning pickup isn't offered.)
+  const pickup: Pickup = 'night_before';
   const times = start ? handover(start, days, pickup) : null;
 
   const submit = async () => {
@@ -242,27 +240,14 @@ function BookingForm({
 
           {start && times ? (
             <Section title="Collect and return">
-              {canNightBefore ? (
-                <Segmented
-                  options={[
-                    { value: 'night_before', label: 'Evening before' },
-                    { value: 'morning', label: 'Morning of the trip' },
-                  ]}
-                  value={pickupChoice}
-                  onChange={setPickupChoice}
-                />
-              ) : (
-                <Text style={styles.note}>Your trip starts today, so you collect the vehicle this morning.</Text>
-              )}
               <View style={styles.handover}>
                 <KeyValue label="Collect" value={times.collect} />
                 <KeyValue label="Return" value={times.back} />
               </View>
               <Text style={styles.note}>
-                {pickup === 'night_before'
-                  ? `Rental days run night to night, the usual way in Sri Lanka: collect on the evening before and bring it back on the night of your last day. That's still ${formatDays(days)}.`
-                  : `Collect on the morning of your first day and bring it back on the night of your last day. ${formatDays(days)}.`}{' '}
-                Agree the exact time with the owner in chat.
+                Rentals run night to night: you collect the vehicle on the evening before your first day and bring it
+                back on the night of your last day. That&apos;s {formatDays(days)}. Agree the exact time with the owner
+                in chat.
               </Text>
             </Section>
           ) : null}
@@ -361,6 +346,7 @@ function BookingForm({
       {pickingDates ? (
         <DatesSheet
           today={today}
+          firstSelectable={addDays(today, 1)}
           lastSelectable={lastSelectable}
           minDays={minDays}
           booked={booked}

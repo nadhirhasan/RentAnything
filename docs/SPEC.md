@@ -327,13 +327,15 @@ control honesty; we make the honest path the easiest one.
 
 1. **Request** — the customer picks the trip days on a calendar (like booking.com: tap
    the first day, then the last; booked days are crossed out; the owner's minimum is
-   shown and applied automatically), when to collect, self-drive / with driver, and an optional
+   shown and applied automatically), self-drive / with driver, and an optional
    message. **Days run night to night**, the usual way in Sri Lanka: for a trip on the
    27th the customer collects on the **evening of the 26th** and returns on the
-   **night of the 27th** — 1 day. This is the default; "morning of the trip" is the
-   other option (forced when the trip starts today). Either way the vehicle comes back
-   on the night of the last day, so back-to-back bookings (next customer collects that
-   evening) don't overlap. The request, chat messages and notifications spell out
+   **night of the 27th** — 1 day. This is the only option in the app for now: owners
+   don't like morning pickups (customers try to pay for half a day), so the earliest
+   first day is tomorrow, collected tonight. (The database still accepts a
+   `morning` pickup, in case it's wanted later.) The vehicle comes back on the night
+   of the last day, so back-to-back bookings (next customer collects that evening)
+   don't overlap. The request, chat messages and notifications spell out
    "Collect on the evening of Sat 26 Sep · return by the night of Sun 27 Sep". The app
    shows the estimated price (same maths as the trip estimate). A phone number is
    required. Questions go through chat (§13).

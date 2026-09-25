@@ -84,6 +84,7 @@ export function BookingCard({ item, role }: { item: BookingListItem; role: Booki
 // then the last day. Past, too-far and booked days can't be picked.
 export function RangeCalendar({
   today,
+  firstSelectable,
   lastSelectable,
   start,
   end,
@@ -91,6 +92,7 @@ export function RangeCalendar({
   onTap,
 }: {
   today: string;
+  firstSelectable: string;
   lastSelectable: string;
   start: string | null;
   end: string | null;
@@ -125,7 +127,7 @@ export function RangeCalendar({
               {week.map((day, di) => {
                 if (!day) return <View key={di} style={styles.cell} />;
                 const taken = isBookedDay(day, booked);
-                const disabled = day < today || day > lastSelectable || taken;
+                const disabled = day < firstSelectable || day > lastSelectable || taken;
                 const isStart = day === start;
                 const isEnd = day === end;
                 const inRange = start != null && end != null && day > start && day < end;
@@ -180,6 +182,7 @@ export function RangeCalendar({
 // and a Done button at the bottom.
 export function DatesSheet({
   today,
+  firstSelectable,
   lastSelectable,
   minDays,
   booked,
@@ -189,6 +192,7 @@ export function DatesSheet({
   onClose,
 }: {
   today: string;
+  firstSelectable: string;
   lastSelectable: string;
   minDays: number;
   booked: DateRange[];
@@ -227,10 +231,14 @@ export function DatesSheet({
             <Text style={styles.more}>Clear</Text>
           </Pressable>
         </View>
-        <Text style={styles.sheetHint}>Tap the first day, then the last day.</Text>
+        <Text style={styles.sheetHint}>
+          Tap the first day, then the last day. You collect the vehicle on the evening before your first day and
+          return it on the night of your last day.
+        </Text>
         <ScrollView contentContainerStyle={styles.sheetBody}>
           <RangeCalendar
             today={today}
+            firstSelectable={firstSelectable}
             lastSelectable={lastSelectable}
             start={range.start}
             end={range.end}
