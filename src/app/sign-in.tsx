@@ -1,6 +1,7 @@
 import * as Linking from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
-import { KeyRound, Lock, MailCheck, X } from 'lucide-react-native';
+import { Image } from 'expo-image';
+import { KeyRound, MailCheck, X } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -178,9 +179,16 @@ export default function SignInScreen() {
             </>
           ) : (
             <>
-              <View style={styles.icon}>
-                {mode === 'forgot' ? <KeyRound size={28} color={colors.primary} /> : <Lock size={28} color={colors.primary} />}
-              </View>
+              {mode === 'forgot' ? (
+                <View style={styles.icon}>
+                  <KeyRound size={28} color={colors.primary} />
+                </View>
+              ) : (
+                <View style={styles.brand}>
+                  <Image source={require('../../assets/images/icon.png')} style={styles.logo} accessibilityLabel="RentAnything" />
+                  <Text style={styles.brandName}>RentAnything</Text>
+                </View>
+              )}
               <Text style={styles.title}>{title}</Text>
               <Text style={styles.text}>{text}</Text>
 
@@ -298,6 +306,9 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   top: { paddingHorizontal: 8, paddingVertical: 6 },
   body: { alignItems: 'center', gap: 14, paddingHorizontal: 24, paddingBottom: 32 },
+  brand: { alignItems: 'center', gap: 8 },
+  logo: { width: 72, height: 72, borderRadius: 18 },
+  brandName: { fontSize: 15, fontWeight: font.bold, color: colors.primary, letterSpacing: 0.3 },
   icon: {
     width: 64,
     height: 64,

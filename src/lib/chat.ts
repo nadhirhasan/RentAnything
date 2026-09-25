@@ -22,6 +22,7 @@ export type ConversationSummary = {
   cover_photo: string | null;
   role: 'owner' | 'customer';
   other_name: string;
+  other_avatar: string | null;
   last_message: string;
   last_message_at: string;
   last_is_mine: boolean;
@@ -39,6 +40,7 @@ export type Conversation = {
   cover_photo: string | null;
   price_per_day: number;
   other_name: string;
+  other_avatar: string | null;
   unlocked: boolean;
   other_phone: string | null;
   other_whatsapp: string | null;

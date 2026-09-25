@@ -5,6 +5,8 @@ import { test } from 'node:test';
 
 import {
   base64ToBytes,
+  colorIndex,
+  initials,
   settleStepper,
   stepperDigits,
   colomboDate,
@@ -101,4 +103,13 @@ test('typing into a stepper', () => {
   assert.equal(settleStepper('999', 30, 1, 365), 365);
   assert.equal(settleStepper('', 7, 1, 365), 7);
   assert.equal(settleStepper('0', 7, 1, 365), 7);
+});
+
+test('initials and avatar colours', () => {
+  assert.equal(initials('Kasun Perera'), 'KP');
+  assert.equal(initials('ruwan'), 'R');
+  assert.equal(initials('amal@example.com'), 'AE');
+  assert.equal(initials('  '), '?');
+  assert.equal(colorIndex('Kasun', 6), colorIndex('Kasun', 6));
+  assert.ok(colorIndex('Kasun', 6) >= 0 && colorIndex('Kasun', 6) < 6);
 });

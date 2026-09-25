@@ -57,6 +57,7 @@ export type BookingDetail = {
   customer_says_rented: boolean | null;
   dispute: 'open' | 'charged' | 'dismissed' | null;
   other_name: string;
+  other_avatar: string | null;
   other_phone: string | null;
   other_whatsapp: string | null;
   customer: CustomerSummary | null;

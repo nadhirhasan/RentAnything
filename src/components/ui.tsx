@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 
 import { settleStepper, stepperDigits } from '@/lib/format';
+import { selectFeedback, tapFeedback } from '@/lib/haptics';
 import type { Help } from '@/lib/help';
 import { colors, font, radius, space } from '@/theme';
 
@@ -58,7 +59,13 @@ export function Button({
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ disabled: disabled || loading }}
-      onPress={onPress}
+      onPress={
+        onPress &&
+        (() => {
+          tapFeedback();
+          onPress();
+        })
+      }
       disabled={disabled || loading}
       style={({ pressed }) => [
         styles.button,
@@ -67,6 +74,7 @@ export function Button({
           borderColor: c.border ?? c.bg,
           height: small ? 40 : 52,
           opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+          transform: [{ scale: pressed && !disabled ? 0.98 : 1 }],
         },
         style,
       ]}>
@@ -99,9 +107,16 @@ export function Chip({
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      onPress={onPress}
-      style={[
+      onPress={
+        onPress &&
+        (() => {
+          selectFeedback();
+          onPress();
+        })
+      }
+      style={({ pressed }) => [
         styles.chip,
+        pressed && { opacity: 0.8 },
         selected
           ? { backgroundColor: colors.primary, borderColor: colors.primary }
           : { backgroundColor: colors.white, borderColor: colors.border },
@@ -152,7 +167,10 @@ export function Toggle({
       accessibilityRole="switch"
       accessibilityLabel={label}
       accessibilityState={{ checked: value, disabled }}
-      onPress={() => onChange(!value)}
+      onPress={() => {
+        selectFeedback();
+        onChange(!value);
+      }}
       disabled={disabled}
       hitSlop={8}
       style={[
@@ -363,7 +381,10 @@ export function Segmented<T extends string | number | boolean | null>({
             key={String(o.value)}
             accessibilityRole="radio"
             accessibilityState={{ selected }}
-            onPress={() => onChange(o.value)}
+            onPress={() => {
+              if (o.value !== value) selectFeedback();
+              onChange(o.value);
+            }}
             style={[styles.segment, selected && styles.segmentSelected]}>
             <Text
               style={[

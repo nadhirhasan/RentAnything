@@ -16,12 +16,14 @@ import {
 import { useCallback, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { EditableAvatar } from '@/components/avatar';
 import { useFeedback } from '@/components/feedback';
 import { Screen, SignInPrompt } from '@/components/layout';
 import { Button, Card, Divider, Field, Notice, Skeleton, ToggleRow } from '@/components/ui';
 import { VehiclePhoto } from '@/components/vehicle';
 import { useAuth, type Profile } from '@/lib/auth';
 import { formatLKPhone, isValidLKPhone } from '@/lib/format';
+import { pickAvatar, saveAvatar } from '@/lib/photos';
 import { unregisterPush } from '@/lib/push';
 import { friendlyError, supabase } from '@/lib/supabase';
 import { contactSupport, hasSupport } from '@/lib/support';
@@ -31,6 +33,7 @@ import { colors, font } from '@/theme';
 export default function AccountScreen() {
   const { session, profile, refreshProfile } = useAuth();
   const { toast, confirm } = useFeedback();
+  const [photoBusy, setPhotoBusy] = useState(false);
 
   if (!session) {
     return (
@@ -78,6 +81,30 @@ export default function AccountScreen() {
     }
   };
 
+  const updatePhoto = async (remove: boolean) => {
+    if (remove) {
+      const ok = await confirm({
+        title: 'Remove your photo?',
+        message: 'People will see your initials instead.',
+        confirmLabel: 'Remove',
+        destructive: true,
+      });
+      if (!ok) return;
+    }
+    const item = remove ? null : await pickAvatar();
+    if (!remove && !item) return;
+    setPhotoBusy(true);
+    try {
+      await saveAvatar(session.user.id, item, profile?.avatar_path ?? null);
+      await refreshProfile();
+      toast(remove ? 'Photo removed' : 'Profile photo saved');
+    } catch (e) {
+      toast(friendlyError(e), 'error');
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
   const changePassword = async () => {
     const ok = await confirm({
       title: 'Change password',
@@ -96,15 +123,37 @@ export default function AccountScreen() {
     <Screen>
       <Header />
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <View style={styles.avatar}>
-            <Text style={styles.initials}>{initials(profile?.full_name || email)}</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.name}>{profile?.full_name || 'Add your name'}</Text>
-            <Text style={styles.sub}>{email}</Text>
+        <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+          <EditableAvatar
+            name={profile?.full_name || email}
+            path={profile?.avatar_path}
+            busy={photoBusy}
+            onPress={() => updatePhoto(false)}
+          />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={styles.name} numberOfLines={1}>
+              {profile?.full_name || 'Add your name'}
+            </Text>
+            <Text style={styles.sub} numberOfLines={1}>
+              {email}
+            </Text>
+            <View style={styles.photoLinks}>
+              <Pressable accessibilityRole="button" onPress={() => updatePhoto(false)} hitSlop={8} disabled={photoBusy}>
+                <Text style={styles.photoLink}>{profile?.avatar_path ? 'Change photo' : 'Add a photo'}</Text>
+              </Pressable>
+              {profile?.avatar_path ? (
+                <Pressable accessibilityRole="button" onPress={() => updatePhoto(true)} hitSlop={8} disabled={photoBusy}>
+                  <Text style={[styles.photoLink, { color: colors.text2 }]}>Remove</Text>
+                </Pressable>
+              ) : null}
+            </View>
           </View>
         </Card>
+        {profile && !profile.avatar_path ? (
+          <Text style={styles.photoHint}>
+            A clear photo of your face helps owners and customers trust you.
+          </Text>
+        ) : null}
 
         {profile ? (
           <ContactForm key={profile.id} profile={profile} onSaved={refreshProfile} />
@@ -219,11 +268,6 @@ function LegalLinks() {
   );
 }
 
-function initials(name: string) {
-  const parts = name.trim().split(/[\s@.]+/).filter(Boolean);
-  return ((parts[0]?.[0] ?? '?') + (parts[1]?.[0] ?? '')).toUpperCase();
-}
-
 // Starts from the saved profile; remounted (via key) for a different user.
 function ContactForm({ profile, onSaved }: { profile: Profile; onSaved: () => void }) {
   const { toast } = useFeedback();
@@ -320,7 +364,7 @@ function ContactForm({ profile, onSaved }: { profile: Profile; onSaved: () => vo
         />
       ) : null}
       {formError ? <Notice tone="danger" text={formError} /> : null}
-      <Button label={dirty ? 'Save changes' : 'Saved'} onPress={save} loading={busy} disabled={!dirty} />
+      {dirty ? <Button label="Save changes" onPress={save} loading={busy} /> : null}
     </Card>
   );
 }
@@ -357,15 +401,9 @@ const styles = StyleSheet.create({
   header: { backgroundColor: colors.white, paddingHorizontal: 16, paddingTop: 4, paddingBottom: 14 },
   heading: { fontSize: 24, fontWeight: font.bold, color: colors.ink },
   body: { padding: 16, gap: 12 },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  initials: { fontSize: 20, fontWeight: font.bold, color: colors.primary },
+  photoLinks: { flexDirection: 'row', gap: 16, paddingTop: 6 },
+  photoLink: { fontSize: 14, fontWeight: font.semibold, color: colors.primary },
+  photoHint: { fontSize: 13, color: colors.text2, lineHeight: 18, paddingHorizontal: 4, marginTop: -4 },
   name: { fontSize: 17, fontWeight: font.semibold, color: colors.ink },
   sub: { fontSize: 13, color: colors.text2, lineHeight: 18 },
   cardTitle: { fontSize: 16, fontWeight: font.semibold, color: colors.ink },

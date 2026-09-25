@@ -34,6 +34,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Avatar } from '@/components/avatar';
 import { EmptyState } from '@/components/layout';
 import {
   Button,
@@ -371,9 +372,7 @@ export default function VehicleScreen() {
 
         <Section>
           <View style={[styles.row, { gap: 12 }]}>
-            <View style={styles.ownerAvatar}>
-              <Text style={styles.ownerInitials}>{initials(v.owner_name)}</Text>
-            </View>
+            <Avatar name={v.owner_name || 'Owner'} path={v.owner_avatar} size={52} />
             <View style={{ flex: 1 }}>
               <Text style={styles.ownerName}>{v.owner_name || 'Vehicle owner'}</Text>
               <Text style={styles.sub}>
@@ -633,11 +632,6 @@ function IconRow({
   );
 }
 
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  return (parts[0]?.[0] ?? '?').toUpperCase() + (parts[1]?.[0] ?? '').toUpperCase();
-}
-
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scroll: { gap: 8, paddingBottom: 24, width: '100%', maxWidth: maxContentWidth, alignSelf: 'center' },
@@ -660,15 +654,6 @@ const styles = StyleSheet.create({
   iconCircle: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   breakdown: { padding: 14, gap: 10, borderRadius: radius.md, backgroundColor: colors.primary50 },
   note: { fontSize: 12, color: colors.muted, lineHeight: 17 },
-  ownerAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primary100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ownerInitials: { fontSize: 15, fontWeight: font.bold, color: colors.primary },
   ownerName: { fontSize: 15, fontWeight: font.semibold, color: colors.ink },
   pager: { width: '100%', aspectRatio: 4 / 3, maxHeight: 440 },
   reportLink: {

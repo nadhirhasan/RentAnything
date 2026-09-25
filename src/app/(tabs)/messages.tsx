@@ -3,6 +3,7 @@ import { Bell, MessageCircle } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
+import { Avatar } from '@/components/avatar';
 import { StatePill } from '@/components/booking';
 import { EmptyState, Screen, SignInPrompt } from '@/components/layout';
 import { Button, Skeleton } from '@/components/ui';
@@ -124,7 +125,10 @@ function Row({ c }: { c: ConversationSummary }) {
       accessibilityLabel={`Chat with ${c.other_name} about ${c.title}${unread ? `, ${c.unread} unread` : ''}`}
       onPress={() => router.push({ pathname: '/chat/[id]', params: { id: c.id } })}
       style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.background }]}>
-      <VehiclePhoto path={c.cover_photo} seed={c.listing_id} style={styles.photo} fit="cover" iconSize={20} />
+      <View>
+        <Avatar name={c.other_name} path={c.other_avatar} size={56} />
+        <VehiclePhoto path={c.cover_photo} seed={c.listing_id} style={styles.vehicleBadge} fit="cover" iconSize={10} />
+      </View>
       <View style={{ flex: 1, gap: 2 }}>
         <View style={styles.line}>
           <Text style={[styles.name, unread && { fontWeight: font.bold }]} numberOfLines={1}>
@@ -167,7 +171,16 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 14, backgroundColor: colors.white },
   heading: { fontSize: 24, fontWeight: font.bold, color: colors.ink },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: colors.white },
-  photo: { width: 56, height: 56, borderRadius: 28 },
+  vehicleBadge: {
+    position: 'absolute',
+    right: -4,
+    bottom: -4,
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
   line: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   name: { flex: 1, fontSize: 16, fontWeight: font.semibold, color: colors.ink },
   time: { fontSize: 12, color: colors.muted },

@@ -115,3 +115,46 @@ export async function syncListingPhotos(
     onUploaded?.(item.key, { id: data.id as string, path });
   }
 }
+
+// Profile photos: square, small (they're shown at most ~100 px).
+export const AVATAR_SIDE = 512;
+
+// Lets the user pick and crop a square photo; null when they cancel.
+export async function pickAvatar(): Promise<PhotoItem | null> {
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    allowsEditing: true,
+    aspect: [1, 1],
+    quality: 1,
+  });
+  if (result.canceled || !result.assets[0]) return null;
+  const asset = result.assets[0];
+  try {
+    const image = await ImageManipulator.manipulate(asset.uri).resize({ width: AVATAR_SIDE }).renderAsync();
+    const saved = await image.saveAsync({ compress: 0.8, format: SaveFormat.JPEG, base64: true });
+    return { key: 'avatar', uri: saved.uri, base64: saved.base64, mimeType: 'image/jpeg' };
+  } catch {
+    return { key: 'avatar', uri: asset.uri, base64: asset.base64, mimeType: asset.mimeType ?? 'image/jpeg' };
+  }
+}
+
+// Uploads a new profile photo (or removes it when `item` is null), saves it
+// on the profile and deletes the old file. Returns the new path.
+export async function saveAvatar(userId: string, item: PhotoItem | null, oldPath: string | null) {
+  let path: string | null = null;
+  if (item) {
+    const mimeType = item.mimeType ?? 'image/jpeg';
+    path = `${userId}/avatar-${Date.now()}.${EXTENSIONS[mimeType] ?? 'jpg'}`;
+    const upload = await supabase.storage
+      .from(PHOTO_BUCKET)
+      .upload(path, await readBytes(item), { contentType: mimeType, upsert: false });
+    if (upload.error) throw upload.error;
+  }
+  const { error } = await supabase.from('profiles').update({ avatar_path: path }).eq('id', userId);
+  if (error) {
+    if (path) await supabase.storage.from(PHOTO_BUCKET).remove([path]);
+    throw error;
+  }
+  if (oldPath) await supabase.storage.from(PHOTO_BUCKET).remove([oldPath]);
+  return path;
+}

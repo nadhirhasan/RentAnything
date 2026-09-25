@@ -437,7 +437,25 @@ Decided with the founder on 25 September 2026.
   fuel policy, availability, night-to-night rentals, estimated total, agreed price,
   handover code, RentAnything fee, owner balance and hidden phone numbers in chat.
 
-## 15. Later
+## 15. Profile photos and polish
+
+Decided with the founder on 25 September 2026: make the app feel professional.
+
+- **Profile photos.** Anyone can add, change or remove a photo under Account (square
+  crop, resized to 512 px, JPEG). It's stored in the `listing-photos` bucket as
+  `<user id>/avatar-<time>.jpg`, so the owner-folder storage policies apply, and
+  `profiles.avatar_path` only accepts a path in your own folder. The old file is
+  deleted on change; account deletion removes it too. Shown on the vehicle page (owner),
+  in the inbox (person's photo with a small vehicle badge), the chat header and the
+  booking page. Without a photo, coloured initials (same colour for the same name).
+  `get_vehicle()` returns `owner_avatar`; `my_conversations()`, `get_conversation()`
+  and `get_booking()` return `other_avatar`.
+- **Feel.** Light vibration on buttons, switches, chips and tabs (phones only),
+  buttons shrink slightly when pressed, the sign-in page shows the app logo, the
+  account form's save button only appears after a change, and the booking page no
+  longer shows "Message the owner" twice.
+
+## 16. Later
 
 Verification badges, online payments (PayHere),
 featured listings for owners, Sinhala / Tamil, phone OTP login, house rentals and

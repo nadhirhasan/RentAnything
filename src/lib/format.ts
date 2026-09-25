@@ -123,3 +123,16 @@ export function settleStepper(text: string, current: number, min: number, max: n
   if (!Number.isFinite(n) || n <= 0) return current;
   return Math.min(max, Math.max(min, n));
 }
+
+// "Kasun Perera" → "KP", "ruwan@x.lk" → "RX", "" → "?".
+export function initials(name: string): string {
+  const parts = name.trim().split(/[\s@.]+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? '?') + (parts[1]?.[0] ?? '')).toUpperCase();
+}
+
+// Picks one of `count` colours for a name, the same every time.
+export function colorIndex(seed: string, count: number): number {
+  let h = 0;
+  for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h % count;
+}
