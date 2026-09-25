@@ -74,20 +74,20 @@ select test.as_user('00000000-0000-0000-0000-0000000000c1');
 select public.report_listing(id, 'other') from l where n between 1 and 9;
 select test.raises($$select public.report_listing((select id from l where n = 10), 'other')$$, 'report_limit');
 
--- Contact limit: 30 different listings per day ----------------------------------
+-- Contact limit: 30 new conversations per day ------------------------------------
 select test.as_user('00000000-0000-0000-0000-0000000000d1');
-select count(*) from l, public.get_listing_contact(l.id, 'call') where n between 1 and 30;
-select test.raises($$select * from public.get_listing_contact((select id from l where n = 31), 'call')$$, 'contact_limit');
--- Contacting a listing already contacted today still works.
-select test.eq((select phone from public.get_listing_contact((select id from l where n = 5), 'whatsapp')),
-               '0771234567', 'repeat contact allowed');
+select count(*) from l, public.send_message(public.start_conversation(l.id), 'Hi, is it available?')
+where n between 1 and 30;
+select test.raises($$select public.start_conversation((select id from l where n = 31))$$, 'contact_limit');
+-- A conversation that already exists still opens.
+select test.eq(public.start_conversation((select id from l where n = 5)) is not null, true, 'existing conversation opens');
 
 -- Reviews ------------------------------------------------------------------------
 select test.as_user('00000000-0000-0000-0000-0000000000b1');
 select test.eq((select eligibility from public.my_review_status((select id from l where n = 0))),
                'not_contacted', 'must contact first');
 select test.raises($$select public.submit_review((select id from l where n = 0), 5::smallint)$$, 'review_not_contacted');
-select * from public.get_listing_contact((select id from l where n = 0), 'call');
+select public.send_message(public.start_conversation((select id from l where n = 0)), 'Is it free on Friday?');
 select test.eq((select eligibility from public.my_review_status((select id from l where n = 0))),
                'too_soon', 'wait a day after contacting');
 reset role;

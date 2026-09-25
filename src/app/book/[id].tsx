@@ -12,6 +12,7 @@ import { VehiclePhoto } from '@/components/vehicle';
 import { useAuth } from '@/lib/auth';
 import { addDays, formatDay, formatDays, formatRange, lastDay, overlapsBooked, type DateRange } from '@/lib/booking-rules';
 import { getBookedDates, requestBooking } from '@/lib/bookings';
+import { askForNotifications } from '@/lib/push';
 import { colomboDate, formatLKPhone, formatLKR, isValidLKPhone } from '@/lib/format';
 import { useUserLocation } from '@/lib/location';
 import { estimateTrip } from '@/lib/pricing';
@@ -157,6 +158,7 @@ function BookingForm({
         await refreshProfile();
       }
       const bookingId = await requestBooking({ listingId: v.id, startDate: start, days, withDriver, note });
+      askForNotifications();
       toast('Request sent to the owner');
       router.replace({ pathname: '/booking/[id]', params: { id: bookingId, sent: '1' } });
     } catch (e) {

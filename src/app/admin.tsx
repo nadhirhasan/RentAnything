@@ -5,6 +5,7 @@ import { FlatList, Linking, RefreshControl, ScrollView, StyleSheet, Text, View }
 
 import { useFeedback } from '@/components/feedback';
 import { EmptyState, Screen } from '@/components/layout';
+import { ChatsTab } from '@/components/admin-chats';
 import { DisputesTab, PaymentsTab, SettingsTab } from '@/components/admin-payments';
 import { Button, Chip, RoundIconButton, Skeleton, Tag } from '@/components/ui';
 import { VehiclePhoto } from '@/components/vehicle';
@@ -23,7 +24,7 @@ import {
 } from '@/lib/trust';
 import { colors, font, radius } from '@/theme';
 
-type Tab = 'reports' | 'hidden' | 'payments' | 'disputes' | 'settings';
+type Tab = 'reports' | 'hidden' | 'chats' | 'payments' | 'disputes' | 'settings';
 
 // Admin-only: reports, hidden listings, owner payments, disputes and settings.
 export default function AdminScreen() {
@@ -276,6 +277,7 @@ export default function AdminScreen() {
           [
             { value: 'reports', label: `Reports${queue ? ` (${queue.length})` : ''}` },
             { value: 'hidden', label: `Hidden${hidden ? ` (${hidden.length})` : ''}` },
+            { value: 'chats', label: 'Chats' },
             { value: 'payments', label: 'Payments' },
             { value: 'disputes', label: 'Disputes' },
             { value: 'settings', label: 'Settings' },
@@ -284,7 +286,9 @@ export default function AdminScreen() {
           <Chip key={t.value} label={t.label} selected={tab === t.value} onPress={() => setTab(t.value)} />
         ))}
       </ScrollView>
-      {tab === 'payments' ? (
+      {tab === 'chats' ? (
+        <ChatsTab />
+      ) : tab === 'payments' ? (
         <PaymentsTab />
       ) : tab === 'disputes' ? (
         <DisputesTab />

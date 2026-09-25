@@ -27,6 +27,10 @@ const HEADINGS: Record<string, { title: string; text: string }> = {
     title: 'Sign in to contact the owner',
     text: 'Owners only get calls from signed-in people, so they know who is calling.',
   },
+  chat: {
+    title: 'Sign in to message the owner',
+    text: 'Owners only get messages from signed-in people, so they know who is asking.',
+  },
   book: {
     title: 'Sign in to book',
     text: 'Owners see who is asking before they accept, and you both get each other’s number.',

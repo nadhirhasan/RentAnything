@@ -15,7 +15,8 @@ decision changes.
   file with the version Supabase records, so local and remote history match.
   Schema, RLS and SQL functions live in `supabase/migrations/`. Public reads go through `search_vehicles()` /
   `get_vehicle()` (security definer; never expose exact location or phone).
-  Owner phone numbers only come from `get_listing_contact()` (signed-in users).
+  Owner phone numbers only come from `get_listing_contact()` and `get_conversation()`,
+  and only after the owner accepts a booking (chat hides numbers before that).
 - Future categories (house rentals etc.) get their own `*_details` table next
   to `vehicle_details`; `listings` stays generic.
 

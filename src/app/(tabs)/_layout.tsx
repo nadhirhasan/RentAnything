@@ -1,11 +1,12 @@
 import { Tabs } from 'expo-router/js-tabs';
-import { CalendarCheck, Car, CircleUser, Compass } from 'lucide-react-native';
+import { CalendarCheck, Car, CircleUser, Compass, MessageCircle } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/lib/auth';
 import { getBookingBadge } from '@/lib/bookings';
+import { useMessages } from '@/lib/messages';
 import { colors, font } from '@/theme';
 
 // Booking requests waiting for the owner, checked every minute and when the
@@ -36,13 +37,15 @@ function useBookingBadge() {
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const badge = useBookingBadge();
+  const { unread } = useMessages();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: { fontSize: 11, lineHeight: 14, fontWeight: font.semibold },
+        tabBarLabelStyle: { fontSize: 10, lineHeight: 13, fontWeight: font.semibold },
+        tabBarItemStyle: { paddingHorizontal: 0 },
         tabBarStyle: {
           borderTopColor: colors.border,
           backgroundColor: colors.white,
@@ -64,6 +67,15 @@ export default function TabLayout() {
           title: 'Bookings',
           tabBarIcon: ({ color, size }) => <CalendarCheck color={color} size={size} />,
           tabBarBadge: badge > 0 ? badge : undefined,
+          tabBarBadgeStyle: { backgroundColor: colors.danger, fontSize: 11 },
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: 'Messages',
+          tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} />,
+          tabBarBadge: unread > 0 ? (unread > 9 ? '9+' : unread) : undefined,
           tabBarBadgeStyle: { backgroundColor: colors.danger, fontSize: 11 },
         }}
       />

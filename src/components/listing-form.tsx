@@ -29,6 +29,7 @@ import {
   Wrap,
 } from '@/components/ui';
 import { VehiclePhoto } from '@/components/vehicle';
+import { askForNotifications } from '@/lib/push';
 import { useAuth } from '@/lib/auth';
 import { formatAmountInput, formatLKPhone, isValidLKPhone } from '@/lib/format';
 import { getGpsPosition } from '@/lib/location';
@@ -194,6 +195,8 @@ export function ListingForm({
       });
       allowLeave.current = true;
       toast(isEdit ? 'Changes saved' : form.is_available ? 'Your vehicle is live' : 'Vehicle saved (switched off)');
+      // Owners need to hear about messages and booking requests.
+      if (!isEdit) askForNotifications();
       router.back();
     } catch (e) {
       setSubmitError(friendlyError(e));

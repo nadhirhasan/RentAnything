@@ -159,7 +159,7 @@ select test.eq((select restricted_reason from public.admin_dues_overview()
 select test.as_user('00000000-0000-0000-0000-0000000000f4');
 select test.eq((select count(*) from public.search_vehicles(6.9, 79.9, page_size => 50) where title = 'Buddy 2'),
                0::bigint, 'restricted owner out of search');
-select test.raises($$select * from public.get_listing_contact((select id from bv where n = 2), 'call')$$,
+select test.raises($$select public.start_conversation((select id from bv where n = 2))$$,
                    'listing_not_available');
 select test.raises($$select public.request_booking((select id from bv where n = 2), (select today + 3 from d), 2)$$,
                    'listing_not_available');

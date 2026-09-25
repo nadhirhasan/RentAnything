@@ -188,20 +188,20 @@ set role anon;
 select test.eq((select count(*) from public.search_vehicles(7.0000, 79.9300)), 3::bigint,
                'hidden listing removed from search');
 
--- Customer C contacts an owner --------------------------------------------------
+-- Customer C messages an owner (phone numbers come after a booking) --------------
 set role authenticated;
 set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000c';
-select test.eq((select phone from public.get_listing_contact((select id from ids where name = 'kdh'), 'call')),
-               '077 123 4567', 'signed-in user gets phone');
-select test.eq((select whatsapp from public.get_listing_contact((select id from ids where name = 'kdh'), 'whatsapp')),
-               '077 123 4567', 'whatsapp falls back to phone');
 select test.raises($$select * from public.get_listing_contact(
-  (select id from ids where name = 'bus'), 'call')$$, 'listing_not_available');
+  (select id from ids where name = 'kdh'), 'call')$$, 'contact_after_booking');
+select public.send_message(public.start_conversation((select id from ids where name = 'kdh')), 'Is it free on Friday?');
+select public.send_message(public.start_conversation((select id from ids where name = 'kdh')), 'For 3 days.');
+select test.raises($$select public.start_conversation((select id from ids where name = 'bus'))$$,
+                   'listing_not_available');
 select test.eq((select count(*) from public.contact_events), 0::bigint, 'customer cannot read contact log');
 
 -- Owner A sees the contact count and can preview a hidden listing.
 set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
-select test.eq((select count(*) from public.contact_events), 2::bigint, 'owner sees contact events');
+select test.eq((select count(*) from public.contact_events), 1::bigint, 'chatting counts as one contact a day');
 select test.eq((select count(*) from public.get_vehicle((select id from ids where name = 'bus'))),
                1::bigint, 'owner can preview own hidden listing');
 select test.eq((select is_live from public.get_vehicle((select id from ids where name = 'bus'))),
