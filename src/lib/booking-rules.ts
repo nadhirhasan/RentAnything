@@ -162,6 +162,63 @@ export function isBookedDay(day: string, booked: DateRange[]): boolean {
   return booked.some((b) => b.start_date <= day && day <= b.end_date);
 }
 
+// Number of days in [start, end], both inclusive.
+export function daysBetween(start: string, end: string): number {
+  return Math.round((Date.parse(end) - Date.parse(start)) / 86_400_000) + 1;
+}
+
+// ---------------------------------------------------------------------------
+// Calendar range picking (tap the first day, then the last day)
+// ---------------------------------------------------------------------------
+
+export type RangePick = { start: string | null; end: string | null; picking: 'start' | 'end' };
+
+export type TapResult = { range: RangePick; message?: string; error?: boolean };
+
+export function tapDay(r: RangePick, day: string, minDays: number, booked: DateRange[]): TapResult {
+  const min = Math.max(1, minDays);
+  // New start: first tap, after a finished range, or a day before the start.
+  if (r.picking === 'start' || !r.start || day < r.start) {
+    const range: RangePick = { start: day, end: lastDay(day, min), picking: 'end' };
+    if (overlapsBooked(day, min, booked)) {
+      return {
+        range,
+        error: true,
+        message: min > 1 ? `The ${min} days from this date include booked days.` : 'That day is booked.',
+      };
+    }
+    return { range, message: min > 1 ? `Tap your last day (at least ${min} days).` : 'Now tap your last day.' };
+  }
+  // Last day: at least the minimum.
+  const minEnd = lastDay(r.start, min);
+  const end = day < minEnd ? minEnd : day;
+  if (overlapsBooked(r.start, daysBetween(r.start, end), booked)) {
+    return { range: r, error: true, message: 'Some days in between are already booked. Pick other dates.' };
+  }
+  return {
+    range: { start: r.start, end, picking: 'start' },
+    message: day < minEnd ? `The owner's minimum is ${min} days, so we picked ${formatDay(end)}.` : undefined,
+  };
+}
+
+// Weeks of a month (Monday first) for the calendar; null = blank cell.
+export function monthWeeks(year: number, month: number): (string | null)[][] {
+  const first = new Date(Date.UTC(year, month, 1));
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const lead = (first.getUTCDay() + 6) % 7;
+  const cells: (string | null)[] = Array.from({ length: lead }, () => null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(Date.UTC(year, month, d)).toISOString().slice(0, 10));
+  while (cells.length % 7) cells.push(null);
+  const weeks: (string | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+  return weeks;
+}
+
+export const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
 // "Mon 12 Oct" (English, fixed format so it's the same on every device).
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

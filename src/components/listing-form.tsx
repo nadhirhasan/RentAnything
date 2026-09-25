@@ -54,6 +54,16 @@ const POPULAR_MAKES = [
 ];
 const TITLE_FIELDS: (keyof FormState)[] = ['vehicle_type', 'make', 'model', 'seats', 'double_seat', 'has_ac'];
 
+
+// Quick picks for the minimum hire; most owners rent from 1 day.
+const MIN_DAYS_CHOICES = [
+  { value: 1, label: '1 day' },
+  { value: 2, label: '2 days' },
+  { value: 3, label: '3 days' },
+  { value: 7, label: '1 week' },
+  { value: 30, label: '1 month' },
+];
+
 export function ListingForm({
   initial,
   listingId,
@@ -394,6 +404,16 @@ export function ListingForm({
                 />
                 <View style={{ flex: 1 }} />
               </View>
+              <Wrap>
+                {MIN_DAYS_CHOICES.map((c) => (
+                  <Chip
+                    key={c.value}
+                    label={c.label}
+                    selected={form.min_days === c.value}
+                    onPress={() => update({ min_days: c.value })}
+                  />
+                ))}
+              </Wrap>
               <Group title="Long-term offers" subtitle="Optional. Shown to customers as a discount for long hires.">
                 <OfferCard
                   title="Weekly offer"

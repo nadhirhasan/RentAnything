@@ -1,26 +1,34 @@
 // Pieces shared by the booking screens (docs/SPEC.md §12).
 import { router } from 'expo-router';
-import { ChevronRight, CircleAlert, Star, Wallet } from 'lucide-react-native';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ChevronRight, CircleAlert, Star, Wallet, X } from 'lucide-react-native';
+import { useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Button } from '@/components/ui';
 import { VehiclePhoto } from '@/components/vehicle';
 import {
   CUSTOMER_TAGS,
-  dayLabel,
+  daysBetween,
+  formatDay,
   formatDays,
   formatRange,
   isBookedDay,
-  lastDay,
+  MONTH_NAMES,
+  monthWeeks,
+  overlapsBooked,
   stateLabel,
+  tapDay,
   STATE_LABELS,
   type BookingRole,
   type BookingState,
   type DateRange,
+  type RangePick,
   type Tone,
 } from '@/lib/booking-rules';
 import type { BookingListItem, CustomerSummary, MyDues } from '@/lib/bookings';
 import { formatDateShort, formatLKR } from '@/lib/format';
-import { colors, font, radius } from '@/theme';
+import { colors, font, maxContentWidth, radius } from '@/theme';
 
 const TONES: Record<Tone, { bg: string; fg: string }> = {
   primary: { bg: colors.primary50, fg: colors.primary },
@@ -72,64 +80,193 @@ export function BookingCard({ item, role }: { item: BookingListItem; role: Booki
   );
 }
 
-// Horizontal list of days to pick the start date. Booked days can't be
-// picked; the chosen days are highlighted.
-export function DayStrip({
-  days,
+// Month calendar for picking trip days, like booking.com: tap the first day,
+// then the last day. Past, too-far and booked days can't be picked.
+export function RangeCalendar({
+  today,
+  lastSelectable,
   start,
-  length,
+  end,
   booked,
-  firstDay,
-  onPick,
+  onTap,
 }: {
-  days: string[];
+  today: string;
+  lastSelectable: string;
   start: string | null;
-  length: number;
+  end: string | null;
   booked: DateRange[];
-  firstDay: string | null; // earliest pickable day (vehicle's back-on date)
-  onPick: (day: string) => void;
+  onTap: (day: string) => void;
 }) {
-  const end = start ? lastDay(start, length) : null;
+  const [shown, setShown] = useState(3);
+  const [y, m] = today.split('-').map(Number);
+  const lastMonth = lastSelectable.slice(0, 7);
+  const months = Array.from({ length: shown }, (_, i) => {
+    const d = new Date(Date.UTC(y, m - 1 + i, 1));
+    return { year: d.getUTCFullYear(), month: d.getUTCMonth() };
+  }).filter(({ year, month }) => `${year}-${String(month + 1).padStart(2, '0')}` <= lastMonth);
+  const canShowMore = months.length === shown;
 
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      style={{ flexGrow: 0 }}
-      contentContainerStyle={{ gap: 8, paddingVertical: 2, alignItems: 'flex-start' }}>
-      {days.map((day) => {
-        const taken = isBookedDay(day, booked) || (firstDay != null && day < firstDay);
-        const inRange = start != null && day >= start && end != null && day <= end;
-        const isStart = day === start;
-        const l = dayLabel(day);
-        return (
-          <Pressable
-            key={day}
-            accessibilityRole="button"
-            accessibilityLabel={`${l.weekday} ${l.day} ${l.month}${taken ? ', not available' : ''}`}
-            accessibilityState={{ selected: isStart, disabled: taken }}
-            disabled={taken}
-            onPress={() => onPick(day)}
-            style={[
-              styles.day,
-              inRange && { backgroundColor: colors.primary50, borderColor: colors.primary100 },
-              isStart && { backgroundColor: colors.primary, borderColor: colors.primary },
-              taken && { opacity: 0.4 },
-            ]}>
-            <Text style={[styles.dayWeek, isStart && { color: colors.white }]}>{l.weekday}</Text>
-            <Text
-              style={[
-                styles.dayNum,
-                isStart && { color: colors.white },
-                taken && { textDecorationLine: 'line-through' },
-              ]}>
-              {l.day}
-            </Text>
-            <Text style={[styles.dayWeek, isStart && { color: colors.white }]}>{l.month}</Text>
+    <View style={{ gap: 16 }}>
+      <View style={styles.weekRow}>
+        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
+          <Text key={d} style={styles.weekday}>
+            {d}
+          </Text>
+        ))}
+      </View>
+      {months.map(({ year, month }) => (
+        <View key={`${year}-${month}`} style={{ gap: 4 }}>
+          <Text style={styles.monthTitle}>
+            {MONTH_NAMES[month]} {year}
+          </Text>
+          {monthWeeks(year, month).map((week, wi) => (
+            <View key={wi} style={styles.weekRow}>
+              {week.map((day, di) => {
+                if (!day) return <View key={di} style={styles.cell} />;
+                const taken = isBookedDay(day, booked);
+                const disabled = day < today || day > lastSelectable || taken;
+                const isStart = day === start;
+                const isEnd = day === end;
+                const inRange = start != null && end != null && day > start && day < end;
+                const edge = isStart || isEnd;
+                return (
+                  <View key={day} style={styles.cell}>
+                    {/* Band behind the range */}
+                    {start && end && start !== end && (inRange || edge) ? (
+                      <View
+                        style={[
+                          styles.band,
+                          isStart && { left: '50%' },
+                          isEnd && { right: '50%' },
+                        ]}
+                      />
+                    ) : null}
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`${formatDay(day)}${taken ? ', booked' : ''}${isStart ? ', first day' : ''}${isEnd ? ', last day' : ''}`}
+                      accessibilityState={{ disabled, selected: edge || inRange }}
+                      disabled={disabled}
+                      onPress={() => onTap(day)}
+                      style={[styles.dayCircle, edge && { backgroundColor: colors.primary }]}>
+                      <Text
+                        style={[
+                          styles.dayText,
+                          day === today && !edge && { color: colors.primary, fontWeight: font.bold },
+                          disabled && { color: colors.switchOff },
+                          taken && { textDecorationLine: 'line-through' },
+                          edge && { color: colors.white, fontWeight: font.bold },
+                        ]}>
+                        {Number(day.slice(8))}
+                      </Text>
+                    </Pressable>
+                  </View>
+                );
+              })}
+            </View>
+          ))}
+        </View>
+      ))}
+      {canShowMore ? (
+        <Pressable accessibilityRole="button" onPress={() => setShown((n) => n + 3)} style={{ alignSelf: 'center', padding: 8 }}>
+          <Text style={styles.more}>Show more months</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+// Full-screen date picker (like booking.com): calendar + the chosen days
+// and a Done button at the bottom.
+export function DatesSheet({
+  today,
+  lastSelectable,
+  minDays,
+  booked,
+  initialStart,
+  initialEnd,
+  onDone,
+  onClose,
+}: {
+  today: string;
+  lastSelectable: string;
+  minDays: number;
+  booked: DateRange[];
+  initialStart: string | null;
+  initialEnd: string | null;
+  onDone: (start: string, end: string) => void;
+  onClose: () => void;
+}) {
+  const insets = useSafeAreaInsets();
+  const [range, setRange] = useState<RangePick>({ start: initialStart, end: initialEnd, picking: 'start' });
+  const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(
+    minDays > 1 ? { text: `This owner rents for at least ${formatDays(minDays)}.` } : null,
+  );
+  const tap = (day: string) => {
+    const r = tapDay(range, day, minDays, booked);
+    setRange(r.range);
+    setMessage(r.message ? { text: r.message, error: r.error } : null);
+  };
+  const ready = range.start != null && range.end != null && !overlapsBooked(range.start, daysBetween(range.start, range.end), booked);
+
+  return (
+    <Modal visible animationType="slide" onRequestClose={onClose}>
+      <View style={[styles.sheetScreen, { paddingTop: insets.top }]}>
+        <View style={styles.sheetHeader}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} hitSlop={10}>
+            <X size={24} color={colors.ink} />
           </Pressable>
-        );
-      })}
-    </ScrollView>
+          <Text style={styles.sheetTitle}>Select your trip days</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              setRange({ start: null, end: null, picking: 'start' });
+              setMessage(null);
+            }}
+            hitSlop={10}>
+            <Text style={styles.more}>Clear</Text>
+          </Pressable>
+        </View>
+        <Text style={styles.sheetHint}>Tap the first day, then the last day.</Text>
+        <ScrollView contentContainerStyle={styles.sheetBody}>
+          <RangeCalendar
+            today={today}
+            lastSelectable={lastSelectable}
+            start={range.start}
+            end={range.end}
+            booked={booked}
+            onTap={tap}
+          />
+        </ScrollView>
+        <View style={[styles.sheetFooter, { paddingBottom: Math.max(16, insets.bottom + 8) }]}>
+          {message ? (
+            <Text style={[styles.sheetMessage, message.error && { color: colors.danger }]}>{message.text}</Text>
+          ) : null}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              {range.start && range.end ? (
+                <>
+                  <Text style={styles.title} numberOfLines={1}>
+                    {range.start === range.end
+                      ? formatDay(range.start)
+                      : `${formatDay(range.start)} → ${formatDay(range.end)}`}
+                  </Text>
+                  <Text style={styles.sub}>{formatDays(daysBetween(range.start, range.end))}</Text>
+                </>
+              ) : (
+                <Text style={styles.sub}>No days selected</Text>
+              )}
+            </View>
+            <Button
+              label="Done"
+              disabled={!ready}
+              onPress={() => range.start && range.end && onDone(range.start, range.end)}
+              style={{ paddingHorizontal: 28 }}
+            />
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -238,18 +375,35 @@ const styles = StyleSheet.create({
   sub: { fontSize: 13, color: colors.text2 },
   action: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   actionText: { fontSize: 12, fontWeight: font.semibold, color: colors.danger },
-  day: {
-    width: 56,
-    paddingVertical: 8,
+  weekRow: { flexDirection: 'row' },
+  weekday: { flex: 1, textAlign: 'center', fontSize: 12, fontWeight: font.semibold, color: colors.muted },
+  monthTitle: { fontSize: 15, fontWeight: font.bold, color: colors.ink, marginBottom: 4 },
+  cell: { flex: 1, height: 44, alignItems: 'center', justifyContent: 'center' },
+  band: { position: 'absolute', top: 4, bottom: 4, left: 0, right: 0, backgroundColor: colors.primary100 },
+  dayCircle: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  dayText: { fontSize: 15, fontWeight: font.medium, color: colors.ink },
+  more: { fontSize: 14, fontWeight: font.semibold, color: colors.primary },
+  sheetScreen: { flex: 1, backgroundColor: colors.white },
+  sheetHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 1,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  sheetTitle: { flex: 1, fontSize: 17, fontWeight: font.bold, color: colors.ink },
+  sheetHint: { fontSize: 13, color: colors.text2, paddingHorizontal: 16, paddingBottom: 8 },
+  sheetBody: { padding: 16, paddingTop: 4, width: '100%', maxWidth: maxContentWidth, alignSelf: 'center' },
+  sheetFooter: {
+    gap: 10,
+    paddingTop: 12,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
     backgroundColor: colors.white,
   },
-  dayWeek: { fontSize: 11, fontWeight: font.medium, color: colors.text2 },
-  dayNum: { fontSize: 18, fontWeight: font.bold, color: colors.ink },
+  sheetMessage: { fontSize: 13, color: colors.text2 },
   avatar: {
     width: 44,
     height: 44,

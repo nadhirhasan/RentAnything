@@ -1,17 +1,18 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Banknote, ChevronLeft, CircleAlert, EyeOff } from 'lucide-react-native';
+import { Banknote, CalendarDays, ChevronLeft, CircleAlert, EyeOff } from 'lucide-react-native';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { DayStrip } from '@/components/booking';
+import { DatesSheet } from '@/components/booking';
 import { useFeedback } from '@/components/feedback';
 import { EmptyState, Screen, SignInPrompt } from '@/components/layout';
-import { Button, Divider, Field, KeyValue, Notice, RoundIconButton, Section, Segmented, Skeleton, Stepper } from '@/components/ui';
+import { Button, Divider, Field, KeyValue, Notice, RoundIconButton, Section, Segmented, Skeleton } from '@/components/ui';
 import { VehiclePhoto } from '@/components/vehicle';
 import { useAuth } from '@/lib/auth';
 import {
   addDays,
+  daysBetween,
   formatDay,
   formatDays,
   formatRange,
@@ -31,8 +32,8 @@ import { friendlyError, supabase } from '@/lib/supabase';
 import { getVehicle, type VehicleDetail } from '@/lib/vehicles';
 import { colors, font, maxContentWidth, radius } from '@/theme';
 
-// How far ahead customers can pick a start date (the database allows 180).
-const DAYS_AHEAD = 90;
+// How far ahead customers can pick trip days (the database allows 180).
+const DAYS_AHEAD = 180;
 
 type Loaded = { id: string; v: VehicleDetail | null; booked: DateRange[]; error: string | null };
 
@@ -126,13 +127,20 @@ function BookingForm({
   const insets = useSafeAreaInsets();
   const { toast } = useFeedback();
   const today = colomboDate();
-  const dayList = useMemo(() => Array.from({ length: DAYS_AHEAD }, (_, i) => addDays(today, i)), [today]);
+  const lastSelectable = addDays(today, DAYS_AHEAD);
   const minDays = Math.max(1, v.min_days);
 
-  const [days, setDays] = useState(Math.max(minDays, 2));
-  const [start, setStart] = useState<string | null>(
-    () => dayList.find((d) => d > today && !overlapsBooked(d, 1, booked)) ?? null,
-  );
+  // Starts with the first free day from tomorrow, for the owner's minimum.
+  const [range, setRange] = useState<{ start: string | null; end: string | null }>(() => {
+    for (let i = 1; i <= DAYS_AHEAD; i++) {
+      const d = addDays(today, i);
+      if (!overlapsBooked(d, minDays, booked)) return { start: d, end: lastDay(d, minDays) };
+    }
+    return { start: null, end: null };
+  });
+  const [pickingDates, setPickingDates] = useState(false);
+  const { start, end } = range;
+  const days = start && end ? daysBetween(start, end) : minDays;
   const [withDriver, setWithDriver] = useState(!v.self_drive);
   // The usual way here: collect the evening before, return on the last night.
   const [pickupChoice, setPickupChoice] = useState<Pickup>('night_before');
@@ -144,7 +152,6 @@ function BookingForm({
 
   const estimate = useMemo(() => estimateTrip(v, days, 0, withDriver), [v, days, withDriver]);
   const clash = start != null && overlapsBooked(start, days, booked);
-  const end = start ? lastDay(start, days) : null;
   const canNightBefore = start != null && nightBeforePossible(start, today);
   const pickup: Pickup = canNightBefore ? pickupChoice : 'morning';
   const times = start ? handover(start, days, pickup) : null;
@@ -201,18 +208,30 @@ function BookingForm({
           </View>
 
           <Section title="When do you need it?">
-            <Text style={styles.note}>Pick the first day of your trip.</Text>
-            <DayStrip days={dayList} start={start} length={days} booked={booked} firstDay={today} onPick={setStart} />
-            <View style={{ flexDirection: 'row' }}>
-              <Stepper label="Trip days" value={days} onChange={setDays} min={minDays} max={180} />
-            </View>
-            {start && end ? (
-              <Text style={styles.summary}>
-                Trip: {formatDay(start)}
-                {days > 1 ? ` → ${formatDay(end)}` : ''} · {formatDays(days)}
-              </Text>
+            {minDays > 1 ? (
+              <Notice icon={CalendarDays} text={`This owner rents for at least ${formatDays(minDays)}.`} />
             ) : null}
-            {v.min_days > 1 ? <Text style={styles.note}>Minimum hire is {formatDays(v.min_days)}.</Text> : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Change trip days"
+              onPress={() => setPickingDates(true)}
+              style={({ pressed }) => [styles.dates, pressed && { opacity: 0.85 }]}>
+              <View style={styles.dateBox}>
+                <Text style={styles.dateLabel}>First day</Text>
+                <Text style={styles.dateValue}>{start ? formatDay(start) : 'Select'}</Text>
+              </View>
+              <View style={styles.dateDivider} />
+              <View style={styles.dateBox}>
+                <Text style={styles.dateLabel}>Last day</Text>
+                <Text style={styles.dateValue}>{end ? formatDay(end) : 'Select'}</Text>
+              </View>
+            </Pressable>
+            <View style={styles.datesFooter}>
+              <Text style={styles.summary}>{start && end ? formatDays(days) : 'Pick your trip days'}</Text>
+              <Pressable accessibilityRole="button" onPress={() => setPickingDates(true)} hitSlop={8}>
+                <Text style={styles.change}>{start ? 'Change dates' : 'Pick dates'}</Text>
+              </Pressable>
+            </View>
             {clash ? <Notice icon={CircleAlert} tone="danger" text="Some of those days are already booked." /> : null}
             {booked.length ? (
               <Text style={styles.note}>
@@ -339,6 +358,21 @@ function BookingForm({
           </View>
         </View>
       </KeyboardAvoidingView>
+      {pickingDates ? (
+        <DatesSheet
+          today={today}
+          lastSelectable={lastSelectable}
+          minDays={minDays}
+          booked={booked}
+          initialStart={start}
+          initialEnd={end}
+          onClose={() => setPickingDates(false)}
+          onDone={(s, e) => {
+            setRange({ start: s, end: e });
+            setPickingDates(false);
+          }}
+        />
+      ) : null}
     </Screen>
   );
 }
@@ -380,6 +414,20 @@ const styles = StyleSheet.create({
   sub: { fontSize: 13, color: colors.text2 },
   summary: { fontSize: 14, fontWeight: font.semibold, color: colors.ink },
   handover: { gap: 8, padding: 12, borderRadius: radius.md, backgroundColor: colors.primary50 },
+  dates: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderRadius: radius.md,
+    backgroundColor: colors.white,
+  },
+  dateBox: { flex: 1, paddingVertical: 12, paddingHorizontal: 14, gap: 2 },
+  dateDivider: { width: 1, backgroundColor: colors.border },
+  dateLabel: { fontSize: 12, fontWeight: font.medium, color: colors.text2 },
+  dateValue: { fontSize: 16, fontWeight: font.bold, color: colors.ink },
+  datesFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  change: { fontSize: 14, fontWeight: font.semibold, color: colors.primary },
   note: { fontSize: 12, color: colors.muted, lineHeight: 17 },
   body: { fontSize: 14, color: colors.ink, lineHeight: 20 },
   stepNum: {

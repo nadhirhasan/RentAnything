@@ -325,8 +325,9 @@ control honesty; we make the honest path the easiest one.
 
 ### 12.1 Booking flow
 
-1. **Request** — the customer picks the first trip day and number of days (at least
-   the vehicle's minimum), when to collect, self-drive / with driver, and an optional
+1. **Request** — the customer picks the trip days on a calendar (like booking.com: tap
+   the first day, then the last; booked days are crossed out; the owner's minimum is
+   shown and applied automatically), when to collect, self-drive / with driver, and an optional
    message. **Days run night to night**, the usual way in Sri Lanka: for a trip on the
    27th the customer collects on the **evening of the 26th** and returns on the
    **night of the 27th** — 1 day. This is the default; "morning of the trip" is the
