@@ -349,6 +349,7 @@ export default function ExploreScreen() {
 const SORT_OPTIONS: { value: SortBy; label: string; description: string }[] = [
   { value: 'nearest', label: 'Nearest first', description: 'Closest available vehicles at the top' },
   { value: 'price', label: 'Lowest price', description: 'Cheapest price per day first' },
+  { value: 'rating', label: 'Top rated', description: 'Best reviewed vehicles first' },
 ];
 
 type Results = {

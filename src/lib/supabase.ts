@@ -47,6 +47,16 @@ export function friendlyError(error: unknown): string {
   if (message.includes('listing_not_available'))
     return 'This vehicle is no longer available.';
   if (message.includes('listing_not_found')) return 'Listing not found.';
+  if (message.includes('contact_limit'))
+    return "You've contacted a lot of owners today. Please try again tomorrow.";
+  if (message.includes('report_limit')) return "You've sent a lot of reports today. Please try again tomorrow.";
+  if (message.includes('cannot_report_own')) return "You can't report your own listing.";
+  if (message.includes('admin_only')) return 'Only admins can do this.';
+  if (message.includes('review_too_soon')) return 'You can review a day after contacting the owner.';
+  if (message.includes('review_expired')) return 'The time to review this vehicle has passed.';
+  if (message.includes('review_not_contacted')) return 'Only people who contacted the owner can review.';
+  if (message.includes('review_own_listing')) return "You can't review your own vehicle.";
+  if (message.includes('customer_not_contacted')) return "This person hasn't contacted you recently.";
   if (message.includes('Invalid login credentials')) return 'Wrong email or password.';
   if (message.includes('Email not confirmed'))
     return 'Please confirm your email first. Check your inbox for the link.';

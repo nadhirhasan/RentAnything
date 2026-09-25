@@ -85,6 +85,7 @@ test('fromListing round-trips through toInputs', () => {
     ...listing,
     id: 'l1',
     is_hidden: false,
+    hidden_reason: null,
     created_at: '2026-09-24T00:00:00Z',
     vehicle_details: details,
     listing_photos: [{ id: 'p1', path: 'u/l1/a.jpg', position: 0 }],

@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { Calendar, Car, Check, Eye, EyeOff, Info, Pencil, Plus } from 'lucide-react-native';
+import { Calendar, Car, Check, Eye, EyeOff, Info, MessageCircle, Pencil, Plus } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
@@ -11,6 +11,8 @@ import { VehiclePhoto } from '@/components/vehicle';
 import { useAuth } from '@/lib/auth';
 import { colomboDate, formatDateShort, formatLKR } from '@/lib/format';
 import { friendlyError } from '@/lib/supabase';
+import { contactSupport, hasSupport } from '@/lib/support';
+import { confirmHire, getRecentContacts, type RecentContact } from '@/lib/trust';
 import { getMyListings, isSwitchedOn, setAvailability, type MyListing } from '@/lib/vehicles';
 import { colors, font, radius } from '@/theme';
 
@@ -149,6 +151,7 @@ function OwnerVehicleCard({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pickingDate, setPickingDate] = useState(false);
+  const [renters, setRenters] = useState<RecentContact[] | null>(null);
   const v = l.vehicle_details;
 
   const save = async (nextOn: boolean, backOn: string | null) => {
@@ -179,8 +182,37 @@ function OwnerVehicleCard({
       ? 0
       : (BACK_ON_OPTIONS.find((o) => o.value > 0 && colomboDate(o.value) === l.available_again_on)?.value ?? -1);
 
+  // Switching off: first ask who rented it (from people who contacted the
+  // owner recently), which lets that customer leave a verified review.
+  const switchOff = async () => {
+    try {
+      const contacts = await getRecentContacts(l.id);
+      if (contacts.length) {
+        setRenters(contacts);
+        return;
+      }
+    } catch {
+      // Not essential; go straight to the date.
+    }
+    setPickingDate(true);
+  };
+
+  const pickRenter = async (userId: string) => {
+    const renter = renters?.find((r) => r.user_id === userId);
+    if (renter) {
+      try {
+        await confirmHire(l.id, renter.user_id);
+        toast(`Thanks! ${renter.name} can now leave a verified review.`);
+      } catch (e) {
+        toast(friendlyError(e), 'error');
+      }
+    }
+    // Let this sheet slide away before the next one opens.
+    setTimeout(() => setPickingDate(true), 350);
+  };
+
   const status = l.is_hidden ? (
-    <Tag label="Hidden by admin" icon={EyeOff} />
+    <Tag label={l.hidden_reason === 'reports' ? 'Under review' : 'Hidden by RentAnything'} icon={EyeOff} />
   ) : on ? (
     <Tag label="Showing in search" icon={Check} tone="success" />
   ) : (
@@ -212,12 +244,16 @@ function OwnerVehicleCard({
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={styles.toggleTitle}>Available for rent</Text>
           <Text style={styles.small}>
-            {on ? 'Customers can see and call you' : "Switched off — you won't get calls"}
+            {l.is_hidden
+              ? "Hidden by RentAnything — customers can't see it right now"
+              : on
+                ? 'Customers can see and call you'
+                : "Switched off — you won't get calls"}
           </Text>
         </View>
         <Toggle
           value={on}
-          onChange={(next) => (next ? save(true, null) : setPickingDate(true))}
+          onChange={(next) => (next ? save(true, null) : switchOff())}
           disabled={saving}
           label="Available for rent"
         />
@@ -260,6 +296,42 @@ function OwnerVehicleCard({
           onPress={() => router.push({ pathname: '/vehicle/[id]', params: { id: l.id } })}
         />
       </View>
+
+      {l.is_hidden ? (
+        <View style={styles.hiddenBox}>
+          <Text style={styles.small}>
+            {l.hidden_reason === 'reports'
+              ? 'Customers reported this listing, so it is hidden while we check it.'
+              : 'RentAnything hid this listing.'}{' '}
+            Contact us if you think this is a mistake.
+          </Text>
+          {hasSupport ? (
+            <Button
+              label="Contact support"
+              kind="whatsapp"
+              size="sm"
+              icon={MessageCircle}
+              onPress={() => contactSupport(`Hi RentAnything, my listing "${l.title}" was hidden. Can you help?`)}
+            />
+          ) : null}
+        </View>
+      ) : null}
+
+      <OptionSheet
+        visible={renters != null}
+        title="Who rented it?"
+        options={[
+          ...(renters ?? []).map((r) => ({
+            value: r.user_id,
+            label: r.name,
+            description: `Contacted you ${formatDateShort(r.last_contacted_at.slice(0, 10))}${r.confirmed ? ' · already confirmed' : ''}`,
+          })),
+          { value: 'none', label: 'Someone else / not sure', description: 'Skip this step' },
+        ]}
+        value=""
+        onSelect={pickRenter}
+        onClose={() => setRenters(null)}
+      />
 
       <OptionSheet
         visible={pickingDate}
@@ -330,4 +402,5 @@ const styles = StyleSheet.create({
   backOnLabel: { fontSize: 12, color: colors.text2 },
   backOnDate: { fontSize: 14, fontWeight: font.semibold, color: colors.ink },
   change: { fontSize: 14, fontWeight: font.semibold, color: colors.primary },
+  hiddenBox: { gap: 10, padding: 12, borderRadius: radius.md, backgroundColor: '#FEF2F2' },
 });

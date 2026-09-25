@@ -12,6 +12,7 @@ for f in supabase/migrations/*.sql; do
   "${PSQL[@]}" -d "$DB" -f "$f"
 done
 "${PSQL[@]}" -d "$DB" -o /dev/null -f scripts/db-test/test.sql
+"${PSQL[@]}" -d "$DB" -o /dev/null -f scripts/db-test/test_trust.sql
 echo "All database tests passed."
 
 # The seed file must load cleanly on top of the migrations.

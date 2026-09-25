@@ -3,6 +3,7 @@ import { Link } from 'expo-router';
 import { Armchair, Car, Gauge, MapPin, Snowflake, Tag as TagIcon, User, Users } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { RatingBadge } from '@/components/reviews';
 import { Skeleton, Tag } from '@/components/ui';
 import { formatDistance, formatKm, formatLKR } from '@/lib/format';
 import { photoUrl } from '@/lib/supabase';
@@ -106,9 +107,10 @@ export function VehicleCard({ v }: { v: VehicleSummary }) {
                 {[v.year, v.town].filter(Boolean).join(' · ')}
               </Text>
             </View>
-            <View style={{ alignItems: 'flex-end' }}>
+            <View style={{ alignItems: 'flex-end', gap: 2 }}>
               <Text style={styles.price}>{formatLKR(v.price_per_day)}</Text>
               <Text style={styles.per}>per day</Text>
+              <RatingBadge avg={v.rating_avg} count={v.rating_count} />
             </View>
           </View>
           <View style={styles.tags}>
