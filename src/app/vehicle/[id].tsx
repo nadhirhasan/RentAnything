@@ -1,7 +1,6 @@
 import { createURL } from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
-  Award,
   CalendarCheck,
   CalendarClock,
   Check,
@@ -14,7 +13,6 @@ import {
   MessageCircle,
   Plus,
   Share2,
-  ShieldCheck,
   Snowflake,
   User,
   Users,
@@ -37,6 +35,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
+import { ScoreBadge, TierBadge } from '@/components/reputation';
 import { EmptyState } from '@/components/layout';
 import {
   Button,
@@ -61,7 +60,6 @@ import { LISTING_REPORT_REASONS, reportListing } from '@/lib/trust';
 import { startConversation } from '@/lib/chat';
 import { formatDistance, formatKm, formatLKR, parseAmount } from '@/lib/format';
 import { useUserLocation } from '@/lib/location';
-import { ownerBadge } from '@/lib/coins';
 import { HELP, minHireLabel, minHireSentence } from '@/lib/help';
 import { estimateTrip, headlinePrice } from '@/lib/pricing';
 import { friendlyError } from '@/lib/supabase';
@@ -378,17 +376,15 @@ export default function VehicleScreen() {
             <Avatar name={v.owner_name || 'Owner'} path={v.owner_avatar} size={52} />
             <View style={{ flex: 1 }}>
               <Text style={styles.ownerName}>{v.owner_name || 'Vehicle owner'}</Text>
-              {ownerBadge(v.owner_verified) ? (
-                <View style={{ flexDirection: 'row', paddingVertical: 2 }}>
-                  <Tag
-                    icon={ownerBadge(v.owner_verified)!.top ? Award : ShieldCheck}
-                    label={ownerBadge(v.owner_verified)!.label}
-                    tone="success"
-                  />
+              {v.owner_tier || v.owner_score != null ? (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingVertical: 2 }}>
+                  <TierBadge tier={v.owner_tier} />
+                  <ScoreBadge score={v.owner_score} />
                 </View>
               ) : null}
               <Text style={styles.sub}>
                 Owner · {v.owner_listing_count} vehicle{v.owner_listing_count === 1 ? '' : 's'} listed
+                {v.owner_verified ? ` · ${v.owner_verified} rental${v.owner_verified === 1 ? '' : 's'} done` : ''}
               </Text>
               {v.owner_rating_avg != null ? (
                 <Text style={styles.sub}>

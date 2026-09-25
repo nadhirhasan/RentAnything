@@ -5,7 +5,6 @@ import {
   ChevronRight,
   CircleAlert,
   CircleCheck,
-  Coins,
   KeyRound,
   MessageCircle,
   Phone,
@@ -469,7 +468,7 @@ export default function BookingScreen() {
         ) : !owner && (b.state === 'declined' || b.state === 'expired' || b.state === 'cancelled' || b.state === 'no_deal') ? (
           <Button label="Find another vehicle" kind="soft" onPress={() => router.replace('/')} />
         ) : owner && (b.state === 'started' || b.state === 'completed') ? (
-          <Button label="My coins" kind="soft" icon={Coins} onPress={() => router.push('/dues')} />
+          <Button label="My wallet" kind="soft" onPress={() => router.push('/dues')} />
         ) : null}
       </ActionBar>
 

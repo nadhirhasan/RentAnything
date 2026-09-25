@@ -3,7 +3,6 @@ import { router, useFocusEffect } from 'expo-router';
 import {
   CalendarCheck,
   Car,
-  Coins,
   ChevronRight,
   FileText,
   KeyRound,
@@ -17,6 +16,7 @@ import { useCallback, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { EditableAvatar } from '@/components/avatar';
+import { Coin } from '@/components/coin';
 import { useFeedback } from '@/components/feedback';
 import { Screen, SignInPrompt } from '@/components/layout';
 import { Button, Card, Divider, Field, Notice, Skeleton, ToggleRow } from '@/components/ui';
@@ -177,8 +177,8 @@ export default function AccountScreen() {
           />
           <Divider />
           <MenuRow
-            icon={<Coins size={20} color={colors.ink} />}
-            label="RentAnything coins"
+            icon={<Coin size={22} />}
+            label="My wallet (coins)"
             onPress={() => router.push('/dues')}
           />
           {profile?.is_admin ? (

@@ -50,10 +50,3 @@ export function topUpPacks(owedCoins: number): number[] {
   }
   return packs;
 }
-
-// Badge for owners who start rentals with the code.
-export function ownerBadge(verified: number): { label: string; top: boolean } | null {
-  if (!verified || verified < 1) return null;
-  if (verified >= 10) return { label: `Top owner · ${verified} rentals`, top: true };
-  return { label: `${verified} verified rental${verified === 1 ? '' : 's'}`, top: false };
-}

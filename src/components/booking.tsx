@@ -1,11 +1,12 @@
 // Pieces shared by the booking screens (docs/SPEC.md §12).
 import { router } from 'expo-router';
-import { ChevronRight, CircleAlert, Coins, Star, X } from 'lucide-react-native';
+import { ChevronRight, CircleAlert, Star, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
+import { Coin } from '@/components/coin';
 import { Button } from '@/components/ui';
 import { VehiclePhoto } from '@/components/vehicle';
 import {
@@ -343,9 +344,9 @@ export function DuesBanner({ dues }: { dues: MyDues | null }) {
   const restricted = dues.restricted;
   const coins = (rupees: number) => formatCoins(toCoins(rupees, dues.coin_value || 10));
   const text = restricted
-    ? `Your vehicles are hidden. You owe ${coins(owed)}: buy coins to bring them back.`
+    ? `Your vehicles are hidden. You owe ${coins(owed)}: top up to bring them back.`
     : owed > 0
-      ? `You owe ${coins(owed)}${dues.due_by ? `. Buy coins by ${formatDateShort(dues.due_by)}` : ''}.`
+      ? `You owe ${coins(owed)}${dues.due_by ? `. Top up by ${formatDateShort(dues.due_by)}` : ''}.`
       : `We're checking your payment of ${formatLKR(dues.pending)}.`;
   return (
     <Pressable
@@ -357,10 +358,10 @@ export function DuesBanner({ dues }: { dues: MyDues | null }) {
           ? { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }
           : { backgroundColor: colors.offer50, borderColor: '#FDE68A' },
       ]}>
-      <Coins size={20} color={restricted ? colors.danger : colors.offerText} />
+      <Coin size={22} />
       <Text style={[styles.bannerText, { color: restricted ? colors.danger : colors.offerText }]}>{text}</Text>
       <Text style={[styles.bannerLink, { color: restricted ? colors.danger : colors.offerText }]}>
-        {owed > 0 ? 'Buy coins' : 'View'}
+        {owed > 0 ? 'Top up' : 'View'}
       </Text>
     </Pressable>
   );

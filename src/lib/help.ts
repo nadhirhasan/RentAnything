@@ -124,7 +124,7 @@ export const HELP = {
       'Example: 5% of Rs 40,000 = Rs 2,000 = 200 coins.',
   },
   balance: {
-    title: 'Your coins',
+    title: 'Your wallet',
     text:
       'Coins are how you pay RentAnything. 1 coin = a fixed amount of rupees (shown on this page). ' +
       'Each rental that starts takes some coins. If you go below zero, you owe coins. ' +
@@ -136,9 +136,19 @@ export const HELP = {
     title: 'Owner rewards',
     text:
       'Start every rental with the customer\'s code and you get: ' +
-      'free first rentals, a "verified rentals" badge, a higher place in search (more customers see you), ' +
+      'free first rentals, a success score and badges (Rising Star, Top Rated, Top Rated Plus), ' +
+      'a higher place in search (more customers see you), ' +
       'a rental record with the customer\'s details, and help from RentAnything if a customer causes trouble. ' +
       'Rentals without the code get none of this.',
+  },
+  successScore: {
+    title: 'Success score',
+    text:
+      'Shows how happy customers are with you, like on Upwork. ' +
+      'Good: reviews with 4 or 5 stars, and rentals started with the code that had no problems. ' +
+      'Bad: reviews with 1 or 2 stars, cancelling after you accepted, not turning up, a vehicle not as described, ' +
+      'or skipping the code. Score = good ÷ (good + bad), from the last 12 months. ' +
+      'Badges: Rising Star (80%+ and 1 rental), Top Rated (90%+ and 5 rentals), Top Rated Plus (90%+ and 20 rentals).',
   },
   rentalRecord: {
     title: 'Rental record',

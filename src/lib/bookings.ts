@@ -200,6 +200,10 @@ export type MyDues = {
   fee_cap: number; // rupees, 0 = no cap
   free_rentals: number;
   verified_rentals: number; // rentals started with the code
+  owner_score: number | null; // success score 0-100, null until 3 outcomes
+  owner_tier: string | null; // 'top_rated_plus' | 'top_rated' | 'rising'
+  good_outcomes: number;
+  bad_outcomes: number;
   entries: LedgerEntry[];
   payments: DuesPayment[];
 };

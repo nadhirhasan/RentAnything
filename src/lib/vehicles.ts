@@ -130,6 +130,8 @@ export type VehicleSummary = {
   driver_price_per_day: number | null;
   min_days: number;
   owner_verified: number; // owner's rentals started with the code
+  owner_score: number | null; // success score, null until 3 outcomes
+  owner_tier: string | null;
   cover_photo: string | null;
   rating_avg: number | null; // only when there are 3+ reviews
   rating_count: number;
@@ -185,6 +187,8 @@ export type VehicleDetail = {
   owner_name: string;
   owner_avatar: string | null;
   owner_verified: number;
+  owner_score: number | null;
+  owner_tier: string | null;
   owner_listing_count: number;
   owner_rating_avg: number | null;
   owner_rating_count: number;
@@ -258,6 +262,8 @@ export type VehicleDetailsRow = Omit<
   | 'owner_name'
   | 'owner_avatar'
   | 'owner_verified'
+  | 'owner_score'
+  | 'owner_tier'
   | 'owner_listing_count'
   | 'owner_rating_avg'
   | 'owner_rating_count'

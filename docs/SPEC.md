@@ -464,18 +464,28 @@ customers should ask for it.
 - **Coins.** Owners see fees and their balance as coins (1 coin = `coin_value` rupees,
   default Rs 10). The database still keeps rupees; fees are rounded to whole coins. The
   wallet is positive when the owner paid in advance and negative when they owe. The
-  payments page is now "RentAnything coins": owners pick a coin pack (what they owe
-  first, then 100 / 300 / 500 / 1,000), pay outside the app and report it as before.
+  payments page is now **My wallet**: a dark wallet card with a gold coin, the balance and
+  a **Top up coins** button (+ quick +100 / +300 / +500). Top up opens a sheet: pick a
+  pack (what they owe is marked), pay outside the app, report it as before. A coin pill
+  in the My vehicles header shows the balance and opens the wallet.
 - **Free first rentals.** An owner's first `free_rentals` (default 3) rentals started
   with the code have no fee. Rentals charged after a dispute never count as free.
 - **Fee cap.** At most `fee_cap` (default Rs 3,000 = 300 coins) per rental, so long
   monthly hires stay worth recording. `rental_fee()` applies free rentals, the cap and
   coin rounding; `start_booking()` and `admin_resolve_dispute()` use it.
 - **Verified rentals.** Rentals started with the code (`owner_verified_rentals()`; not
-  admin-charged disputes). Shown as a badge on cards and the owner card ("3 verified
-  rentals", "Top owner · 12 rentals" at 10+). Search's default sort is now
-  **Recommended**: distance divided by (1 + 0.1 × verified rentals, max 10), so a
-  Top owner counts as half as far away.
+  admin-charged disputes).
+- **Success score and badges (like Upwork).** `owner_reputation()` over the last 12
+  months: good = 4-5 star reviews + rentals started with the code whose customer left no
+  review; bad = 1-2 star reviews + accepted bookings the owner cancelled + customer "owner
+  didn't turn up" / "not as described" + disputes charged. Score = good / (good + bad),
+  shown once there are 3 outcomes. Badges: **Rising Star** (80%+, 1+ verified rental),
+  **Top Rated** (90%+, 5+), **Top Rated Plus** (90%+, 20+). Shown on cards and the owner
+  card ("96% success" + badge); owners see their score, good/bad counts and what they need
+  for the next badge on the wallet page.
+- **Recommended sort** (default): distance divided by (1 + 0.1 × verified rentals up to
+  10 + 0.1 / 0.3 / 0.5 for Rising Star / Top Rated / Top Rated Plus); owners under 60%
+  count as 1.5× further away.
 - **Rental record.** Bookings started with the code show a record (number
   RA-XXXXXXXX, vehicle, owner, customer, customer's phone for the owner, dates, agreed
   price, start time) that either side can share.

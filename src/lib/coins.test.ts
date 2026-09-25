@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { formatCoins, freeRentalsLeft, ownerBadge, rentalFee, toCoins, topUpPacks, walletCoins } from './coins.ts';
+import { formatCoins, freeRentalsLeft, rentalFee, toCoins, topUpPacks, walletCoins } from './coins.ts';
 
 test('coins from rupees', () => {
   assert.equal(toCoins(2000, 10), 200);
@@ -32,10 +32,4 @@ test('top-up packs start with what you owe', () => {
   assert.deepEqual(topUpPacks(640), [640, 1000]);
   assert.deepEqual(topUpPacks(95), [100, 300, 500, 1000]);
   assert.deepEqual(topUpPacks(300), [300, 500, 1000]);
-});
-
-test('owner badge', () => {
-  assert.equal(ownerBadge(0), null);
-  assert.deepEqual(ownerBadge(1), { label: '1 verified rental', top: false });
-  assert.deepEqual(ownerBadge(12), { label: 'Top owner · 12 rentals', top: true });
 });
