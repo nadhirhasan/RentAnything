@@ -16,6 +16,7 @@ done
 "${PSQL[@]}" -d "$DB" -o /dev/null -f scripts/db-test/test_bookings.sql
 "${PSQL[@]}" -d "$DB" -o /dev/null -f scripts/db-test/test_chat.sql
 "${PSQL[@]}" -d "$DB" -o /dev/null -f scripts/db-test/test_pickup.sql
+"${PSQL[@]}" -d "$DB" -o /dev/null -f scripts/db-test/test_avatars.sql
 echo "All database tests passed."
 
 # The seed file must load cleanly on top of the migrations.

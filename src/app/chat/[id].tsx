@@ -25,13 +25,13 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Avatar } from '@/components/avatar';
 import { StatePill } from '@/components/booking';
 import { useFeedback } from '@/components/feedback';
 import { EmptyState, Screen, SignInPrompt } from '@/components/layout';
 import { ReportSheet } from '@/components/report-sheet';
 import { OptionSheet } from '@/components/sheet';
 import { Button, InfoTip, RoundIconButton, Skeleton, webNoOutline } from '@/components/ui';
-import { VehiclePhoto } from '@/components/vehicle';
 import { useAuth } from '@/lib/auth';
 import {
   CHAT_REPORT_REASONS,
@@ -226,13 +226,7 @@ export default function ChatScreen() {
             })
           }
           style={styles.headerMain}>
-          <VehiclePhoto
-            path={conv.cover_photo}
-            seed={conv.listing_id}
-            style={styles.headerPhoto}
-            fit="cover"
-            iconSize={16}
-          />
+          <Avatar name={conv.other_name} path={conv.other_avatar} size={40} />
           <View style={{ flex: 1 }}>
             <Text style={styles.headerName} numberOfLines={1}>
               {conv.other_name}
@@ -532,7 +526,6 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 2,
   },
-  headerPhoto: { width: 40, height: 40, borderRadius: 20 },
   headerName: { fontSize: 16, fontWeight: font.semibold, color: colors.ink },
   headerSub: { fontSize: 13, color: colors.text2 },
   strip: {

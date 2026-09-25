@@ -250,8 +250,12 @@ export async function getReviewInvites(): Promise<ReviewInvite[]> {
 export async function deleteMyAccount() {
   // Photos live in Storage, which the database can't delete; remove them first.
   const { data: photos } = await supabase.from('listing_photos').select('path');
-  if (photos?.length) {
-    await supabase.storage.from('listing-photos').remove(photos.map((p) => p.path as string));
+  const uid = (await supabase.auth.getSession()).data.session?.user.id ?? '';
+  const { data: me } = await supabase.from('profiles').select('avatar_path').eq('id', uid).maybeSingle();
+  const paths = (photos ?? []).map((p) => p.path as string);
+  if (me?.avatar_path) paths.push(me.avatar_path as string);
+  if (paths.length) {
+    await supabase.storage.from('listing-photos').remove(paths);
   }
   const { error } = await supabase.rpc('delete_my_account');
   if (error) throw error;

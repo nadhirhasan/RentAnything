@@ -17,6 +17,10 @@ export default function PrivacyScreen() {
         <B>Contact numbers:</B> the phone and WhatsApp numbers owners add so customers can reach them.
       </Li>
       <Li>
+        <B>Profile photo:</B> if you add one, it is shown next to your name to people you chat or book with, and
+        to customers on your vehicles. You can change or remove it anytime in Account.
+      </Li>
+      <Li>
         <B>Listings:</B> vehicle details, prices, photos, and where the vehicle is parked (a map point and town).
       </Li>
       <Li>

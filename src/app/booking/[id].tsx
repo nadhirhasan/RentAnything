@@ -30,6 +30,7 @@ import { useFeedback } from '@/components/feedback';
 import { EmptyState, Screen, SignInPrompt } from '@/components/layout';
 import { RATING_WORDS, StarInput } from '@/components/reviews';
 import { OptionSheet } from '@/components/sheet';
+import { Avatar } from '@/components/avatar';
 import { Button, Chip, Divider, Field, KeyValue, Notice, RoundIconButton, Section, Skeleton, Wrap } from '@/components/ui';
 import { VehiclePhoto } from '@/components/vehicle';
 import { useAuth } from '@/lib/auth';
@@ -313,9 +314,12 @@ export default function BookingScreen() {
         {/* The other person */}
         <Section title={owner ? 'Customer' : 'Owner'}>
           {owner && b.customer ? (
-            <CustomerCard c={b.customer} />
+            <CustomerCard c={b.customer} avatar={b.other_avatar} />
           ) : (
-            <Text style={styles.title}>{b.other_name}</Text>
+            <View style={[styles.row, { alignItems: 'center', gap: 12 }]}>
+              <Avatar name={b.other_name} path={b.other_avatar} size={52} />
+              <Text style={[styles.title, { flex: 1 }]}>{b.other_name}</Text>
+            </View>
           )}
           {b.other_phone ? (
             <>
@@ -352,14 +356,17 @@ export default function BookingScreen() {
           ) : b.state === 'requested' ? (
             <Text style={styles.sub}>Phone numbers are shared when the owner accepts.</Text>
           ) : null}
-          <Button
-            label={owner ? 'Message the customer' : 'Message the owner'}
-            kind="soft"
-            size="sm"
-            icon={MessageCircle}
-            loading={busy === 'chat'}
-            onPress={openChat}
-          />
+          {/* The action bar already has this button while a request waits. */}
+          {!owner && b.state === 'requested' ? null : (
+            <Button
+              label={owner ? 'Message the customer' : 'Message the owner'}
+              kind="soft"
+              size="sm"
+              icon={MessageCircle}
+              loading={busy === 'chat'}
+              onPress={openChat}
+            />
+          )}
         </Section>
 
         {/* Owner: rate the customer */}

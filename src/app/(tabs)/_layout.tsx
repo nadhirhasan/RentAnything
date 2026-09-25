@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { selectFeedback } from '@/lib/haptics';
 import { useAuth } from '@/lib/auth';
 import { getBookingBadge } from '@/lib/bookings';
 import { useMessages } from '@/lib/messages';
@@ -40,6 +41,7 @@ export default function TabLayout() {
   const { unread } = useMessages();
   return (
     <Tabs
+      screenListeners={{ tabPress: () => selectFeedback() }}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,

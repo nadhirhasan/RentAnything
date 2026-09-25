@@ -182,6 +182,7 @@ export type VehicleDetail = {
   is_mine: boolean;
   hidden_reason: 'reports' | 'admin' | null; // only for the owner
   owner_name: string;
+  owner_avatar: string | null;
   owner_listing_count: number;
   owner_rating_avg: number | null;
   owner_rating_count: number;
@@ -253,6 +254,7 @@ export type VehicleDetailsRow = Omit<
   | 'is_mine'
   | 'hidden_reason'
   | 'owner_name'
+  | 'owner_avatar'
   | 'owner_listing_count'
   | 'owner_rating_avg'
   | 'owner_rating_count'

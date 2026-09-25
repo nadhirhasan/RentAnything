@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/ui';
 import { VehiclePhoto } from '@/components/vehicle';
 import {
@@ -279,16 +280,14 @@ export function DatesSheet({
 }
 
 // What an owner sees about a customer before accepting.
-export function CustomerCard({ c }: { c: CustomerSummary }) {
+export function CustomerCard({ c, avatar }: { c: CustomerSummary; avatar?: string | null }) {
   const good = CUSTOMER_TAGS.filter((t) => t.good && c.tags[t.value]);
   const bad = CUSTOMER_TAGS.filter((t) => !t.good && c.tags[t.value]);
   const year = c.member_since ? c.member_since.slice(0, 4) : null;
   return (
     <View style={{ gap: 10 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{c.name.slice(0, 1).toUpperCase()}</Text>
-        </View>
+        <Avatar name={c.name} path={avatar} size={52} />
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={styles.title}>{c.name}</Text>
           <Text style={styles.sub}>
@@ -412,15 +411,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   sheetMessage: { fontSize: 13, color: colors.text2 },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primary100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { fontSize: 16, fontWeight: font.bold, color: colors.primary },
   rating: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   ratingText: { fontSize: 15, fontWeight: font.bold, color: colors.ink },
   tag: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.pill },
