@@ -59,7 +59,7 @@ import { startConversation } from '@/lib/chat';
 import { formatDistance, formatKm, formatLKR, parseAmount } from '@/lib/format';
 import { useUserLocation } from '@/lib/location';
 import { HELP, minHireLabel, minHireSentence } from '@/lib/help';
-import { estimateTrip } from '@/lib/pricing';
+import { estimateTrip, headlinePrice } from '@/lib/pricing';
 import { friendlyError } from '@/lib/supabase';
 import {
   DOCUMENTS,
@@ -186,6 +186,8 @@ export default function VehicleScreen() {
     );
   }
 
+  const hp = headlinePrice(v);
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -272,8 +274,16 @@ export default function VehicleScreen() {
         </Section>
 
         <Section title="Pricing">
-          <KeyValue label="Per day" value={formatLKR(v.price_per_day)} />
-          {v.weekly_price != null ? (
+          {hp.unit === 'day' ? <KeyValue label="Per day" value={formatLKR(v.price_per_day)} /> : null}
+          {hp.unit !== 'day' ? (
+            <KeyValue
+              label={hp.unit === 'month' ? 'Per month · 30 days' : 'Per week · 7 days'}
+              help={HELP.minDays}
+              value={formatLKR(hp.amount)}
+              sub={`${formatLKR(hp.perDay ?? 0)} a day`}
+            />
+          ) : null}
+          {v.weekly_price != null && hp.unit === 'day' ? (
             <KeyValue
               label="Weekly · 7 days"
               help={HELP.offers}
@@ -281,10 +291,10 @@ export default function VehicleScreen() {
               sub={v.weekly_km ? `${formatKm(v.weekly_km)} included` : 'Unlimited km'}
             />
           ) : null}
-          {v.monthly_price != null ? (
+          {v.monthly_price != null && hp.unit !== 'month' ? (
             <KeyValue
               label="Monthly · 30 days"
-              help={v.weekly_price != null ? undefined : HELP.offers}
+              help={v.weekly_price != null && hp.unit === 'day' ? undefined : HELP.offers}
               value={formatLKR(v.monthly_price)}
               sub={v.monthly_km ? `${formatKm(v.monthly_km)} included` : 'Unlimited km'}
             />
@@ -409,9 +419,9 @@ export default function VehicleScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <View style={{ flexShrink: 1, minWidth: 84 }}>
               <Text style={styles.barPrice} numberOfLines={1}>
-                {formatLKR(v.price_per_day)}
+                {formatLKR(hp.amount)}
               </Text>
-              <Text style={styles.barPer}>per day</Text>
+              <Text style={styles.barPer}>per {hp.unit}</Text>
             </View>
             <Button
               label="Message"
@@ -580,8 +590,8 @@ function TripEstimate({ v }: { v: VehicleDetail }) {
       <Text style={styles.note}>
         {e.freeKm == null ? 'Unlimited km. ' : `${formatKm(e.freeKm)} free for ${e.days} days. `}
         {e.minDaysApplied ? `Minimum hire is ${v.min_days} days. ` : ''}
-        Days run night to night: you collect the evening before your first day and return on the night of your last
-        day. Final price is agreed with the owner.
+        You take the vehicle in the evening, the day before your first day, and bring it back at night on your last
+        day. You agree the final price with the owner.
       </Text>
     </Section>
   );

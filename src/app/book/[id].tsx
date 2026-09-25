@@ -39,7 +39,7 @@ import { askForNotifications } from '@/lib/push';
 import { colomboDate, formatLKPhone, formatLKR, isValidLKPhone } from '@/lib/format';
 import { HELP, minHireSentence } from '@/lib/help';
 import { useUserLocation } from '@/lib/location';
-import { estimateTrip } from '@/lib/pricing';
+import { estimateTrip, headlinePrice } from '@/lib/pricing';
 import { friendlyError, supabase } from '@/lib/supabase';
 import { getVehicle, type VehicleDetail } from '@/lib/vehicles';
 import { colors, font, maxContentWidth, radius } from '@/theme';
@@ -213,7 +213,7 @@ function BookingForm({
                 {v.title}
               </Text>
               <Text style={styles.sub}>
-                {v.town} · {formatLKR(v.price_per_day)} / day
+                {v.town} · {formatLKR(headlinePrice(v).amount)} / {headlinePrice(v).unit}
               </Text>
             </View>
           </View>
@@ -262,9 +262,8 @@ function BookingForm({
                 <KeyValue label="Return" value={times.back} />
               </View>
               <Text style={styles.note}>
-                Rentals run night to night: you collect the vehicle on the evening before your first day and bring it
-                back on the night of your last day. That&apos;s {formatDays(days)}. Agree the exact time with the owner
-                in chat.
+                You take the vehicle in the evening, the day before your first day. You bring it back at night on your
+                last day. That is {formatDays(days)}. Agree the exact time with the owner in chat.
               </Text>
             </Section>
           ) : null}

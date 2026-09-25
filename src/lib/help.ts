@@ -7,133 +7,151 @@ export const HELP = {
   minDays: {
     title: 'Minimum hire',
     text:
-      'The shortest rental the owner accepts. For example, if it says 30 days, you can only book this vehicle for ' +
-      '30 days or more. Owners who rent monthly (for a company, a family or a long trip) usually set this.',
+      'This is the smallest number of days you can rent this vehicle. ' +
+      'Example: if it says 30 days, you must rent it for 30 days or more. You cannot rent it for 1 or 2 days.',
   },
   minDaysOwner: {
     title: 'Minimum rental days',
     text:
-      'The shortest rental you accept. Customers can’t book fewer days than this. Choose 1 for day hires, 7 for ' +
-      'weekly hires or 30 if you only rent monthly. Your listing clearly shows this to customers.',
+      'The smallest number of days a customer can rent your vehicle. ' +
+      'Choose 1 if you give it for one day. Choose 7 if you give it only by the week. ' +
+      'Choose 30 if you give it only by the month. Customers will see this clearly.',
   },
   freeKm: {
     title: 'Free km per day',
     text:
-      'Kilometres included in the day price. For 3 days with 100 km a day, the customer can drive 300 km in total ' +
-      'without paying more. Leave it empty or tick Unlimited km if there is no limit.',
+      'How many km the customer can drive each day without paying more. ' +
+      'Example: 100 km a day for 3 days = 300 km free. ' +
+      'If there is no limit, tick "Unlimited km".',
   },
   extraKm: {
     title: 'Extra km charge',
     text:
-      'What the customer pays for each km over the free km. Example: 350 km driven with 300 km free and Rs 45 / km ' +
-      'is 50 × Rs 45 = Rs 2,250 extra.',
+      'Money for each km driven after the free km. ' +
+      'Example: 300 km free, you drive 350 km, extra km is Rs 45. ' +
+      'You pay 50 × Rs 45 = Rs 2,250 more.',
   },
   offers: {
-    title: 'Weekly and monthly offers',
+    title: 'Weekly and monthly price',
     text:
-      'A cheaper total price for long hires. The weekly price is for 7 days and the monthly price is for 30 days; ' +
-      'longer hires are worked out at the same rate. The trip estimate always uses whichever price is cheapest for ' +
-      'the customer. "Km included" is the free km for the whole 7 or 30 days (empty = unlimited).',
+      'A lower price when you rent for a long time. ' +
+      'The weekly price is for 7 days. The monthly price is for 30 days. ' +
+      'The app always shows you the cheapest price. ' +
+      '"Km included" means the free km for all 7 or 30 days. Empty means no km limit.',
   },
   doubleSeat: {
     title: 'Double seat',
     text:
-      'A van with two rows of seats behind the driver (often a modified buddy van), so it carries more people. ' +
-      'Switch it off for a single seat row.',
+      'The van has two rows of seats behind the driver, so more people can travel. ' +
+      'Many buddy vans are changed like this. Switch it off if there is only one row.',
   },
   selfDrive: {
     title: 'Self-drive',
     text:
-      'The customer drives the vehicle themselves. Owners usually ask for a driving licence, NIC and sometimes a ' +
-      'deposit or guarantor.',
+      'You drive the vehicle yourself. No driver comes with it. ' +
+      'The owner will usually ask for your driving licence and NIC.',
   },
   driver: {
     title: 'With a driver',
     text:
-      'The owner or their driver drives. The driver price is per day and all-inclusive: the driver’s food and stay ' +
-      'are part of it, so the customer doesn’t pay those separately. 0 means the day price already includes a driver.',
+      'The owner or their driver drives the vehicle for you. ' +
+      'The driver price is for one day and includes everything: the driver\'s food and room. ' +
+      'You do not pay for those separately. If it says 0, the driver is already in the day price.',
   },
   deposit: {
     title: 'Refundable deposit',
     text:
-      'Money the customer gives the owner at pickup as security. The owner gives it back when the vehicle is ' +
-      'returned in the same condition. It is paid in cash between you; RentAnything doesn’t hold it.',
+      'Money you give the owner when you take the vehicle. ' +
+      'The owner gives it all back when you return the vehicle with no damage. ' +
+      'You pay it to the owner in cash. RentAnything does not keep it.',
   },
   documents: {
     title: 'Documents needed',
     text:
-      'What the customer must show at pickup. NIC = National Identity Card. Guarantor = someone the owner can ' +
-      'contact who vouches for the customer. Bring the originals.',
+      'Papers you must show the owner when you take the vehicle. Bring the originals. ' +
+      'NIC = National Identity Card. ' +
+      'Guarantor = a person who knows you and will take responsibility for you if there is a problem.',
   },
   fuelPolicy: {
-    title: 'Fuel policy',
+    title: 'Fuel',
     text:
-      'Same fuel level: you get it with some fuel and return it with the same amount. Pay for fuel used: the owner ' +
-      'charges for the fuel you used. Fuel included: fuel is part of the price.',
+      'Same fuel level: return the vehicle with the same amount of fuel you got. ' +
+      'Pay for fuel used: the owner charges you for the fuel you used. ' +
+      'Fuel included: fuel is already in the price.',
   },
   available: {
     title: 'Available for rent',
     text:
-      'When this is off, the vehicle is hidden from search and nobody can message or book it. Switch it off when ' +
-      'the vehicle is away or being repaired, and back on when it’s ready.',
+      'When this is off, nobody can see, message or book your vehicle. ' +
+      'Turn it off when the vehicle is busy or being repaired. Turn it on again when it is ready.',
   },
   nightToNight: {
-    title: 'Night-to-night rental',
+    title: 'How days are counted',
     text:
-      'In Sri Lanka a rental day runs night to night. If you need the vehicle on the 27th, you collect it on the ' +
-      'evening of the 26th and bring it back on the night of the 27th. That is 1 day.',
+      'In Sri Lanka a rental day is from night to night. ' +
+      'Example: you need the vehicle on the 27th. You take it on the 26th evening and bring it back on the 27th night. ' +
+      'That is 1 day.',
   },
   estimate: {
     title: 'Estimated total',
     text:
-      'A guide worked out from the owner’s prices, the days and the km you enter. The final price is agreed with ' +
-      'the owner when you meet, and you pay the owner in cash. You don’t pay anything in the app.',
+      'This is only a guide. We calculate it from the owner\'s prices, your days and your km. ' +
+      'You and the owner agree the final price when you meet. ' +
+      'You pay the owner in cash. You do not pay anything in the app.',
   },
   agreedPrice: {
     title: 'Agreed price',
     text:
-      'The total you and the customer agreed when you met. RentAnything’s fee is a percentage of this and is added ' +
-      'to your balance when the rental starts.',
+      'The full amount you and the customer agreed when you met. ' +
+      'RentAnything\'s small fee is calculated from this amount. It is added to your balance when the rental starts.',
   },
   handoverCode: {
     title: 'Handover code',
     text:
-      'A 4-digit code that proves the rental really started. When you both agree at pickup, the customer shows the ' +
-      'code and the owner types it in. Customers: only share it when you have the vehicle.',
+      'A 4-number code. It shows the rental really started. ' +
+      'Customer: when you are happy with the vehicle, show this code to the owner. ' +
+      'Owner: type the customer\'s code in the app. ' +
+      'Customers, only give the code after you get the vehicle.',
   },
   fee: {
     title: 'RentAnything fee',
     text:
-      'Customers pay the owner directly in cash. Owners pay RentAnything a small fee (a percentage of the agreed ' +
-      'price) for each rental that starts through the app.',
+      'Customers pay the owner in cash. ' +
+      'For each rental that starts through the app, the owner pays RentAnything a small fee. ' +
+      'Example: 5% of Rs 40,000 = Rs 2,000.',
   },
   balance: {
     title: 'Your balance',
     text:
-      'The fees you owe RentAnything. If it reaches the limit, or a fee stays unpaid too long, your vehicles are ' +
-      'hidden from search until you pay. They come back as soon as you report a payment.',
+      'The fees you must pay RentAnything. ' +
+      'If this amount gets too high, or you do not pay for too long, people cannot find your vehicles. ' +
+      'After you pay and tell us in the app, your vehicles come back straight away.',
   },
   hiddenNumbers: {
-    title: 'Why numbers are hidden',
+    title: 'Why phone numbers are hidden',
     text:
-      'Phone numbers, emails and links are hidden in chat until the owner accepts a booking. This protects both ' +
-      'sides from scams. After the owner accepts, you both see each other’s number with Call and WhatsApp buttons.',
+      'Phone numbers, emails and links are hidden in chat until the owner accepts your booking. ' +
+      'This stops scams and keeps both of you safe. ' +
+      'After the owner accepts, you can see each other\'s number and call or WhatsApp.',
   },
 } satisfies Record<string, Help>;
 
-// "1 month minimum", "1 week minimum", "3 days minimum" — null for 1 day.
+// "Minimum 1 month", "Minimum 2 weeks", "Minimum 3 days" — null for 1 day.
 export function minHireLabel(minDays: number): string | null {
   if (!minDays || minDays <= 1) return null;
-  if (minDays % 30 === 0) return `${minDays / 30} month${minDays > 30 ? 's' : ''} minimum`;
-  if (minDays % 7 === 0) return `${minDays / 7} week${minDays > 7 ? 's' : ''} minimum`;
-  return `${minDays} days minimum`;
+  return `Minimum ${minHirePeriod(minDays)}`;
+}
+
+function minHirePeriod(minDays: number): string {
+  if (minDays % 30 === 0) return `${minDays / 30} month${minDays > 30 ? 's' : ''}`;
+  if (minDays % 7 === 0) return `${minDays / 7} week${minDays > 7 ? 's' : ''}`;
+  return `${minDays} days`;
 }
 
 // The sentence under the title on the vehicle page.
 export function minHireSentence(minDays: number): string | null {
-  const label = minHireLabel(minDays);
-  if (!label) return null;
-  const period = label.replace(' minimum', '');
+  if (!minDays || minDays <= 1) return null;
+  const period = minHirePeriod(minDays);
   const days = period.endsWith('days') ? '' : ` (${minDays} days)`;
-  return `This vehicle can only be hired for ${period} or more${days}.`;
+  return `You must rent this vehicle for at least ${period}${days}.`;
 }

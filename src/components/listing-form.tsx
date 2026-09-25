@@ -421,8 +421,8 @@ export function ListingForm({
               </Wrap>
               {form.min_days > 1 ? (
                 <Text style={styles.hint}>
-                  Customers see &quot;{minHireLabel(form.min_days)}&quot; and can&apos;t book fewer than {form.min_days}{' '}
-                  days.
+                  Customers will see &quot;{minHireLabel(form.min_days)}&quot;. They cannot book less than{' '}
+                  {form.min_days} days.
                 </Text>
               ) : null}
               <Group

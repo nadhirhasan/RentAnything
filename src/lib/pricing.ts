@@ -97,3 +97,21 @@ export function lowestDailyRate(p: Pick<PricingInput, 'price_per_day' | 'weekly_
   if (p.monthly_price != null) rates.push(p.monthly_price / 30);
   return Math.round(Math.min(...rates));
 }
+
+// The main price on cards and the vehicle page. Owners who only rent by the
+// week or month (min_days 7+ / 30+) show that price, with the day rate under it.
+export type HeadlinePrice = { amount: number; unit: 'day' | 'week' | 'month'; perDay: number | null };
+
+export function headlinePrice(
+  p: Pick<PricingInput, 'price_per_day' | 'min_days' | 'weekly_price' | 'monthly_price'>,
+): HeadlinePrice {
+  if (p.min_days >= 30) {
+    const amount = p.monthly_price ?? p.price_per_day * 30;
+    return { amount, unit: 'month', perDay: Math.round(amount / 30) };
+  }
+  if (p.min_days >= 7) {
+    const amount = p.weekly_price ?? p.price_per_day * 7;
+    return { amount, unit: 'week', perDay: Math.round(amount / 7) };
+  }
+  return { amount: p.price_per_day, unit: 'day', perDay: null };
+}

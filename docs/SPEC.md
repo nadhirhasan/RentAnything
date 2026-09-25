@@ -420,11 +420,17 @@ Decided with the founder on 25 September 2026.
 
 - **Minimum hire is shown clearly.** When an owner's minimum is more than 1 day,
   customers see it before they tap anything: a tag on the Explore card and the
-  vehicle page ("3 days minimum", "1 week minimum", "1 month minimum"), a note under
-  the title ("This vehicle can only be hired for 1 month or more (30 days)"), and on
+  vehicle page ("Minimum 3 days", "Minimum 1 week", "Minimum 1 month"), a note under
+  the title ("You must rent this vehicle for at least 1 month (30 days)"), and on
   the request page. The trip estimate and the calendar never go below the minimum.
   `search_vehicles()` returns `min_days` for this. Owners see the same label under
-  the minimum rental days field.
+  the minimum rental days field. New listings default to a 1-day minimum.
+- **Weekly / monthly price first.** When the minimum is 30+ days, cards and the
+  vehicle page show the price per month (the monthly offer, or 30 × the day price)
+  with the day rate under it; 7–29 days shows the price per week the same way.
+  Prices a customer can't book (e.g. the day price on a monthly-only van) are hidden.
+- **Simple English.** Most users read English as a second language: short
+  sentences, everyday words and an example in each help text.
 - **Help icons.** Terms people may not know have a "?" icon that opens a short
   plain-English explanation (`src/lib/help.ts`): minimum hire, free km, extra km,
   weekly / monthly offers, double seat, self-drive, driver price, deposit, documents,

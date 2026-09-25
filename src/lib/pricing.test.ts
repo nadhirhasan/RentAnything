@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { estimateTrip, lowestDailyRate, type PricingInput } from './pricing.ts';
+import { estimateTrip, headlinePrice, lowestDailyRate, type PricingInput } from './pricing.ts';
 
 // The Toyota KDH from the Figma design.
 const kdh: PricingInput = {
@@ -82,4 +82,17 @@ test('bad input falls back to 1 day, 0 km', () => {
 test('lowestDailyRate considers long-term offers', () => {
   assert.equal(lowestDailyRate(kdh), 8000);
   assert.equal(lowestDailyRate({ price_per_day: 6000, weekly_price: null, monthly_price: null }), 6000);
+});
+
+test('headline price follows the minimum hire', () => {
+  assert.deepEqual(headlinePrice(kdh), { amount: 12000, unit: 'day', perDay: null });
+  assert.deepEqual(headlinePrice({ ...kdh, min_days: 30 }), { amount: 240000, unit: 'month', perDay: 8000 });
+  assert.deepEqual(headlinePrice({ ...kdh, min_days: 7 }), { amount: 77000, unit: 'week', perDay: 11000 });
+  // No monthly offer: 30 × the day price.
+  assert.deepEqual(headlinePrice({ ...kdh, min_days: 30, monthly_price: null }), {
+    amount: 360000,
+    unit: 'month',
+    perDay: 12000,
+  });
+  assert.equal(headlinePrice({ ...kdh, min_days: 3 }).unit, 'day');
 });
