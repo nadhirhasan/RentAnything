@@ -2,6 +2,7 @@ import { createURL } from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   CalendarCheck,
+  CalendarClock,
   Check,
   ChevronLeft,
   CircleAlert,
@@ -57,7 +58,8 @@ import { LISTING_REPORT_REASONS, reportListing } from '@/lib/trust';
 import { startConversation } from '@/lib/chat';
 import { formatDistance, formatKm, formatLKR, parseAmount } from '@/lib/format';
 import { useUserLocation } from '@/lib/location';
-import { estimateTrip } from '@/lib/pricing';
+import { HELP, minHireLabel, minHireSentence } from '@/lib/help';
+import { estimateTrip, headlinePrice } from '@/lib/pricing';
 import { friendlyError } from '@/lib/supabase';
 import {
   DOCUMENTS,
@@ -184,6 +186,8 @@ export default function VehicleScreen() {
     );
   }
 
+  const hp = headlinePrice(v);
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -221,9 +225,12 @@ export default function VehicleScreen() {
         ) : null}
 
         <Section style={{ gap: 8 }}>
-          <View style={{ flexDirection: 'row', gap: 6 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             <Tag label={vehicleTypeLabel(v.vehicle_type)} tone="primary" />
             {v.is_live ? <Tag label="Available now" icon={Check} tone="success" /> : null}
+            {minHireLabel(v.min_days) ? (
+              <Tag label={minHireLabel(v.min_days)!} icon={CalendarClock} tone="offer" />
+            ) : null}
           </View>
           <Text style={styles.title}>{v.title}</Text>
           {v.rating_avg != null ? (
@@ -261,33 +268,51 @@ export default function VehicleScreen() {
           {v.double_seat ? (
             <Text style={styles.sub}>Double seat: two seat rows behind the driver.</Text>
           ) : null}
+          {minHireSentence(v.min_days) ? (
+            <Notice icon={CalendarClock} text={minHireSentence(v.min_days)!} help={HELP.minDays} />
+          ) : null}
         </Section>
 
         <Section title="Pricing">
-          <KeyValue label="Per day" value={formatLKR(v.price_per_day)} />
-          {v.weekly_price != null ? (
+          {hp.unit === 'day' ? <KeyValue label="Per day" value={formatLKR(v.price_per_day)} /> : null}
+          {hp.unit !== 'day' ? (
+            <KeyValue
+              label={hp.unit === 'month' ? 'Per month · 30 days' : 'Per week · 7 days'}
+              help={HELP.minDays}
+              value={formatLKR(hp.amount)}
+              sub={`${formatLKR(hp.perDay ?? 0)} a day`}
+            />
+          ) : null}
+          {v.weekly_price != null && hp.unit === 'day' ? (
             <KeyValue
               label="Weekly · 7 days"
+              help={HELP.offers}
               value={formatLKR(v.weekly_price)}
               sub={v.weekly_km ? `${formatKm(v.weekly_km)} included` : 'Unlimited km'}
             />
           ) : null}
-          {v.monthly_price != null ? (
+          {v.monthly_price != null && hp.unit !== 'month' ? (
             <KeyValue
               label="Monthly · 30 days"
+              help={v.weekly_price != null && hp.unit === 'day' ? undefined : HELP.offers}
               value={formatLKR(v.monthly_price)}
               sub={v.monthly_km ? `${formatKm(v.monthly_km)} included` : 'Unlimited km'}
             />
           ) : null}
           <Divider />
-          <KeyValue label="Free km" value={v.km_per_day ? `${formatKm(v.km_per_day)} / day` : 'Unlimited'} />
+          <KeyValue label="Free km" help={HELP.freeKm} value={v.km_per_day ? `${formatKm(v.km_per_day)} / day` : 'Unlimited'} />
           {v.extra_km_rate != null ? (
-            <KeyValue label="Extra km" value={`${formatLKR(v.extra_km_rate)} / km`} />
+            <KeyValue label="Extra km" help={HELP.extraKm} value={`${formatLKR(v.extra_km_rate)} / km`} />
           ) : null}
-          <KeyValue label="Minimum hire" value={`${v.min_days} day${v.min_days > 1 ? 's' : ''}`} />
+          <KeyValue
+            label="Minimum hire"
+            help={HELP.minDays}
+            value={`${v.min_days} day${v.min_days > 1 ? 's' : ''}`}
+            sub={minHireLabel(v.min_days) && v.min_days >= 7 ? minHireLabel(v.min_days)! : undefined}
+          />
         </Section>
 
-        <Section title="Driver">
+        <Section title="Driver" help={v.driver_available ? HELP.driver : HELP.selfDrive}>
           {v.driver_available ? (
             <IconRow
               icon={User}
@@ -314,10 +339,12 @@ export default function VehicleScreen() {
         <Section title="Terms">
           <KeyValue
             label="Refundable deposit"
+            help={HELP.deposit}
             value={v.deposit ? formatLKR(v.deposit) : 'Not required'}
           />
           <KeyValue
             label="Documents"
+            help={HELP.documents}
             value={
               v.documents.length
                 ? v.documents.map((d) => DOCUMENTS.find((x) => x.value === d)?.label ?? d).join(', ')
@@ -326,6 +353,7 @@ export default function VehicleScreen() {
           />
           <KeyValue
             label="Fuel"
+            help={HELP.fuelPolicy}
             value={FUEL_POLICIES.find((f) => f.value === v.fuel_policy)?.label ?? 'Ask the owner'}
           />
           {v.terms_notes ? <Text style={styles.body}>{v.terms_notes}</Text> : null}
@@ -391,9 +419,9 @@ export default function VehicleScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <View style={{ flexShrink: 1, minWidth: 84 }}>
               <Text style={styles.barPrice} numberOfLines={1}>
-                {formatLKR(v.price_per_day)}
+                {formatLKR(hp.amount)}
               </Text>
-              <Text style={styles.barPer}>per day</Text>
+              <Text style={styles.barPer}>per {hp.unit}</Text>
             </View>
             <Button
               label="Message"
@@ -510,7 +538,7 @@ function TripEstimate({ v }: { v: VehicleDetail }) {
         : `${e.days} day${e.days > 1 ? 's' : ''} × ${formatLKR(v.price_per_day)}`;
 
   return (
-    <Section title="Trip estimate">
+    <Section title="Trip estimate" help={HELP.estimate}>
       {v.self_drive && v.driver_available ? (
         <Segmented
           options={[
@@ -522,7 +550,13 @@ function TripEstimate({ v }: { v: VehicleDetail }) {
         />
       ) : null}
       <View style={{ flexDirection: 'row', gap: 12 }}>
-        <Stepper label="Days" value={days} onChange={setDays} min={1} />
+        <Stepper
+          label="Days"
+          help={HELP.nightToNight}
+          value={days}
+          onChange={setDays}
+          min={Math.max(1, v.min_days)}
+        />
         <Field
           label="Total km (approx.)"
           value={kmText}
@@ -556,7 +590,8 @@ function TripEstimate({ v }: { v: VehicleDetail }) {
       <Text style={styles.note}>
         {e.freeKm == null ? 'Unlimited km. ' : `${formatKm(e.freeKm)} free for ${e.days} days. `}
         {e.minDaysApplied ? `Minimum hire is ${v.min_days} days. ` : ''}
-        Final price is agreed with the owner.
+        You take the vehicle in the evening, the day before your first day, and bring it back at night on your last
+        day. You agree the final price with the owner.
       </Text>
     </Section>
   );

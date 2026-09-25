@@ -33,6 +33,7 @@ import { askForNotifications } from '@/lib/push';
 import { useAuth } from '@/lib/auth';
 import { formatAmountInput, formatLKPhone, isValidLKPhone } from '@/lib/format';
 import { getGpsPosition } from '@/lib/location';
+import { HELP, minHireLabel } from '@/lib/help';
 import { STEPS, suggestTitle, toInputs, validateStep, type Errors, type FormState } from '@/lib/listing-form';
 import { MAX_PHOTOS, pickPhotos, syncListingPhotos } from '@/lib/photos';
 import { friendlyError, supabase } from '@/lib/supabase';
@@ -53,6 +54,16 @@ const POPULAR_MAKES = [
   'Isuzu', 'Tata', 'Mahindra', 'Bajaj', 'TVS', 'Daihatsu', 'Mercedes-Benz', 'BMW',
 ];
 const TITLE_FIELDS: (keyof FormState)[] = ['vehicle_type', 'make', 'model', 'seats', 'double_seat', 'has_ac'];
+
+
+// Quick picks for the minimum hire; most owners rent from 1 day.
+const MIN_DAYS_CHOICES = [
+  { value: 1, label: '1 day' },
+  { value: 2, label: '2 days' },
+  { value: 3, label: '3 days' },
+  { value: 7, label: '1 week' },
+  { value: 30, label: '1 month' },
+];
 
 export function ListingForm({
   initial,
@@ -316,6 +327,7 @@ export function ListingForm({
                   <>
                     <ToggleRow
                       title="Double seat"
+                      help={HELP.doubleSeat}
                       subtitle="Two seat rows behind the driver (modified buddy van)"
                       value={form.double_seat}
                       onChange={(double_seat) => update({ double_seat })}
@@ -358,6 +370,7 @@ export function ListingForm({
                 <View style={styles.pair}>
                   <Field
                     label="Free km per day"
+                    help={HELP.freeKm}
                     suffix="km"
                     value={form.km_per_day}
                     onChangeText={(t) => update({ km_per_day: formatAmountInput(t) })}
@@ -368,6 +381,7 @@ export function ListingForm({
                   />
                   <Field
                     label="Extra km charge"
+                    help={HELP.extraKm}
                     prefix="Rs"
                     suffix="/km"
                     value={form.extra_km_rate}
@@ -387,6 +401,7 @@ export function ListingForm({
               <View style={styles.pair}>
                 <Stepper
                   label="Minimum rental days"
+                  help={HELP.minDaysOwner}
                   value={form.min_days}
                   onChange={(min_days) => update({ min_days })}
                   min={1}
@@ -394,7 +409,26 @@ export function ListingForm({
                 />
                 <View style={{ flex: 1 }} />
               </View>
-              <Group title="Long-term offers" subtitle="Optional. Shown to customers as a discount for long hires.">
+              <Wrap>
+                {MIN_DAYS_CHOICES.map((c) => (
+                  <Chip
+                    key={c.value}
+                    label={c.label}
+                    selected={form.min_days === c.value}
+                    onPress={() => update({ min_days: c.value })}
+                  />
+                ))}
+              </Wrap>
+              {form.min_days > 1 ? (
+                <Text style={styles.hint}>
+                  Customers will see &quot;{minHireLabel(form.min_days)}&quot;. They cannot book less than{' '}
+                  {form.min_days} days.
+                </Text>
+              ) : null}
+              <Group
+                title="Long-term offers"
+                subtitle="Optional. Shown to customers as a discount for long hires."
+                help={HELP.offers}>
                 <OfferCard
                   title="Weekly offer"
                   period="7 days"
@@ -427,6 +461,7 @@ export function ListingForm({
               <Card>
                 <ToggleRow
                   title="Self-drive allowed"
+                  help={HELP.selfDrive}
                   subtitle="Customer drives the vehicle"
                   value={form.self_drive}
                   onChange={(self_drive) => update({ self_drive })}
@@ -434,6 +469,7 @@ export function ListingForm({
                 <Divider />
                 <ToggleRow
                   title="Driver available"
+                  help={HELP.driver}
                   subtitle="You or your driver comes with it"
                   value={form.driver_available}
                   onChange={(driver_available) => update({ driver_available })}
@@ -459,13 +495,14 @@ export function ListingForm({
               </Card>
               <Field
                 label="Refundable deposit (optional)"
+                help={HELP.deposit}
                 prefix="Rs"
                 value={form.deposit}
                 onChangeText={(t) => update({ deposit: formatAmountInput(t) })}
                 keyboardType="number-pad"
                 placeholder="25,000"
               />
-              <Group title="Documents needed">
+              <Group title="Documents needed" help={HELP.documents}>
                 <Wrap>
                   {DOCUMENTS.map((d) => {
                     const on = form.documents.includes(d.value);
@@ -487,7 +524,7 @@ export function ListingForm({
                   })}
                 </Wrap>
               </Group>
-              <Group title="Fuel policy">
+              <Group title="Fuel policy" help={HELP.fuelPolicy}>
                 <View style={{ gap: 8 }}>
                   {FUEL_POLICIES.map((p) => (
                     <Radio
@@ -590,6 +627,7 @@ export function ListingForm({
               <Card>
                 <ToggleRow
                   title="Available for rent now"
+                  help={HELP.available}
                   subtitle="You can switch this off anytime"
                   value={form.is_available}
                   onChange={(is_available) => update({ is_available, available_again_on: null })}

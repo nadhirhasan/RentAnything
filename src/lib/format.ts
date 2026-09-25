@@ -110,3 +110,16 @@ export function formatLKPhone(phone: string): string {
   if (/^0\d{9}$/.test(local)) return `${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}`;
   return phone.trim();
 }
+
+// Number typed into a +/- stepper: digits only, as long as the largest value.
+export function stepperDigits(text: string, max: number): string {
+  return text.replace(/\D/g, '').slice(0, String(max).length);
+}
+
+// What a typed stepper value settles on when the field is left: kept in
+// [min, max]; empty or 0 falls back to the current value.
+export function settleStepper(text: string, current: number, min: number, max: number): number {
+  const n = parseInt(text, 10);
+  if (!Number.isFinite(n) || n <= 0) return current;
+  return Math.min(max, Math.max(min, n));
+}

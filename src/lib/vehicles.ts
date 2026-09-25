@@ -128,6 +128,7 @@ export type VehicleSummary = {
   self_drive: boolean;
   driver_available: boolean;
   driver_price_per_day: number | null;
+  min_days: number;
   cover_photo: string | null;
   rating_avg: number | null; // only when there are 3+ reviews
   rating_count: number;

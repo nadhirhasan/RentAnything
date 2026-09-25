@@ -1,11 +1,13 @@
 import { Image } from 'expo-image';
 import { Link } from 'expo-router';
-import { Armchair, Car, Gauge, MapPin, Snowflake, Tag as TagIcon, User, Users } from 'lucide-react-native';
+import { Armchair, CalendarClock, Car, Gauge, MapPin, Snowflake, Tag as TagIcon, User, Users } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { RatingBadge } from '@/components/reviews';
 import { Skeleton, Tag } from '@/components/ui';
 import { formatDistance, formatKm, formatLKR } from '@/lib/format';
+import { minHireLabel } from '@/lib/help';
+import { headlinePrice } from '@/lib/pricing';
 import { photoUrl } from '@/lib/supabase';
 import type { VehicleSummary } from '@/lib/vehicles';
 import { colors, font, radius } from '@/theme';
@@ -77,13 +79,17 @@ export function hireModeLabel(v: { self_drive: boolean; driver_available: boolea
 }
 
 export function VehicleCard({ v }: { v: VehicleSummary }) {
-  const offer = offerLabel(v);
+  const price = headlinePrice(v);
+  // Skip the offer tag when it's the price already shown on top.
+  const offer =
+    price.unit === 'month' || (price.unit === 'week' && v.monthly_price == null) ? null : offerLabel(v);
+  const minHire = minHireLabel(v.min_days);
   const distance = formatDistance(v.distance_km);
   return (
     <Link href={{ pathname: '/vehicle/[id]', params: { id: v.id } }} asChild>
       <Pressable
         accessibilityRole="link"
-        accessibilityLabel={`${v.title}, ${formatLKR(v.price_per_day)} per day, ${distance ?? ''}`}
+        accessibilityLabel={`${v.title}, ${formatLKR(price.amount)} per ${price.unit}, ${distance ?? ''}`}
         style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}>
         <View>
           <VehiclePhoto path={v.cover_photo} seed={v.id} style={styles.photo} />
@@ -108,8 +114,9 @@ export function VehicleCard({ v }: { v: VehicleSummary }) {
               </Text>
             </View>
             <View style={{ alignItems: 'flex-end', gap: 2 }}>
-              <Text style={styles.price}>{formatLKR(v.price_per_day)}</Text>
-              <Text style={styles.per}>per day</Text>
+              <Text style={styles.price}>{formatLKR(price.amount)}</Text>
+              <Text style={styles.per}>per {price.unit}</Text>
+              {price.perDay != null ? <Text style={styles.per}>({formatLKR(price.perDay)} a day)</Text> : null}
               <RatingBadge avg={v.rating_avg} count={v.rating_count} />
             </View>
           </View>
@@ -129,7 +136,12 @@ export function VehicleCard({ v }: { v: VehicleSummary }) {
               />
             ) : null}
           </View>
-          {offer ? <Tag icon={TagIcon} label={offer} tone="offer" /> : null}
+          {minHire || offer ? (
+            <View style={styles.tags}>
+              {minHire ? <Tag icon={CalendarClock} label={minHire} tone="primary" /> : null}
+              {offer ? <Tag icon={TagIcon} label={offer} tone="offer" /> : null}
+            </View>
+          ) : null}
         </View>
       </Pressable>
     </Link>

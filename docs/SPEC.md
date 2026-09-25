@@ -325,8 +325,18 @@ control honesty; we make the honest path the easiest one.
 
 ### 12.1 Booking flow
 
-1. **Request** — the customer picks a start day and number of days (at least the
-   vehicle's minimum), self-drive / with driver, and an optional message. The app
+1. **Request** — the customer picks the trip days on a calendar (like booking.com: tap
+   the first day, then the last; booked days are crossed out; the owner's minimum is
+   shown and applied automatically), self-drive / with driver, and an optional
+   message. **Days run night to night**, the usual way in Sri Lanka: for a trip on the
+   27th the customer collects on the **evening of the 26th** and returns on the
+   **night of the 27th** — 1 day. This is the only option in the app for now: owners
+   don't like morning pickups (customers try to pay for half a day), so the earliest
+   first day is tomorrow, collected tonight. (The database still accepts a
+   `morning` pickup, in case it's wanted later.) The vehicle comes back on the night
+   of the last day, so back-to-back bookings (next customer collects that evening)
+   don't overlap. The request, chat messages and notifications spell out
+   "Collect on the evening of Sat 26 Sep · return by the night of Sun 27 Sep". The app
    shows the estimated price (same maths as the trip estimate). A phone number is
    required. Questions go through chat (§13).
    Limits: 3 open requests at a time, 10 a day, one open booking per vehicle.
@@ -404,7 +414,30 @@ deals made outside the app. It's still a guess; we can't control honesty.
   request or new listing; the Messages tab offers to turn them on. Tapping one opens
   the chat, booking or payments page. Setup: README → Push notifications.
 
-## 14. Later
+## 14. Minimum hire and help icons
+
+Decided with the founder on 25 September 2026.
+
+- **Minimum hire is shown clearly.** When an owner's minimum is more than 1 day,
+  customers see it before they tap anything: a tag on the Explore card and the
+  vehicle page ("Minimum 3 days", "Minimum 1 week", "Minimum 1 month"), a note under
+  the title ("You must rent this vehicle for at least 1 month (30 days)"), and on
+  the request page. The trip estimate and the calendar never go below the minimum.
+  `search_vehicles()` returns `min_days` for this. Owners see the same label under
+  the minimum rental days field. New listings default to a 1-day minimum.
+- **Weekly / monthly price first.** When the minimum is 30+ days, cards and the
+  vehicle page show the price per month (the monthly offer, or 30 × the day price)
+  with the day rate under it; 7–29 days shows the price per week the same way.
+  Prices a customer can't book (e.g. the day price on a monthly-only van) are hidden.
+- **Simple English.** Most users read English as a second language: short
+  sentences, everyday words and an example in each help text.
+- **Help icons.** Terms people may not know have a "?" icon that opens a short
+  plain-English explanation (`src/lib/help.ts`): minimum hire, free km, extra km,
+  weekly / monthly offers, double seat, self-drive, driver price, deposit, documents,
+  fuel policy, availability, night-to-night rentals, estimated total, agreed price,
+  handover code, RentAnything fee, owner balance and hidden phone numbers in chat.
+
+## 15. Later
 
 Verification badges, online payments (PayHere),
 featured listings for owners, Sinhala / Tamil, phone OTP login, house rentals and

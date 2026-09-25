@@ -5,6 +5,8 @@ import { test } from 'node:test';
 
 import {
   base64ToBytes,
+  settleStepper,
+  stepperDigits,
   colomboDate,
   formatAmountInput,
   formatDistance,
@@ -89,4 +91,14 @@ test('Sri Lankan phone validation and formatting', () => {
   assert.equal(isValidLKPhone('77123'), false);
   assert.equal(formatLKPhone('0771234567'), '077 123 4567');
   assert.equal(formatLKPhone('+94771234567'), '077 123 4567');
+});
+
+test('typing into a stepper', () => {
+  assert.equal(stepperDigits('4a5', 365), '45');
+  assert.equal(stepperDigits('12345', 365), '123');
+  assert.equal(settleStepper('45', 30, 30, 365), 45);
+  assert.equal(settleStepper('3', 30, 30, 365), 30); // below the minimum
+  assert.equal(settleStepper('999', 30, 1, 365), 365);
+  assert.equal(settleStepper('', 7, 1, 365), 7);
+  assert.equal(settleStepper('0', 7, 1, 365), 7);
 });

@@ -5,7 +5,19 @@ import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet,
 
 import { useFeedback } from '@/components/feedback';
 import { EmptyState, Screen, SignInPrompt } from '@/components/layout';
-import { Button, Chip, Divider, Field, Notice, RoundIconButton, Section, Skeleton, Wrap } from '@/components/ui';
+import {
+  Button,
+  Chip,
+  Divider,
+  Field,
+  LabelRow,
+  Notice,
+  RoundIconButton,
+  Section,
+  Skeleton,
+  Wrap,
+} from '@/components/ui';
+import { HELP } from '@/lib/help';
 import { useAuth } from '@/lib/auth';
 import { getMyDues, PAYMENT_METHODS, reportDuesPayment, type MyDues, type PaymentMethod } from '@/lib/bookings';
 import { formatAmountInput, formatDateShort, formatLKR, parseAmount } from '@/lib/format';
@@ -86,7 +98,11 @@ export default function DuesScreen() {
             />
           }>
           <Section style={{ gap: 12 }}>
-            <Text style={styles.label}>{dues.balance > 0 ? 'You owe RentAnything' : 'Your balance'}</Text>
+            <LabelRow
+              text={dues.balance > 0 ? 'You owe RentAnything' : 'Your balance'}
+              help={HELP.balance}
+              style={styles.label}
+            />
             <Text style={[styles.amount, dues.restricted && { color: colors.danger }]}>
               {formatLKR(Math.max(0, dues.balance))}
             </Text>
@@ -122,7 +138,7 @@ export default function DuesScreen() {
             ) : null}
           </Section>
 
-          <Section title="How it works">
+          <Section title="How it works" help={HELP.fee}>
             <Text style={styles.body}>
               Customers pay you in cash. When a rental starts (you enter the customer&apos;s code), RentAnything&apos;s
               fee of {dues.commission_percent}% of the agreed price is added here. Pay your balance any time.
