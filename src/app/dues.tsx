@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { ChevronLeft, CircleAlert, CircleCheck, Clock, MessageCircle, Wallet } from 'lucide-react-native';
+import { ChevronLeft, CircleAlert, CircleCheck, Clock, Coins, Gift, MessageCircle, ShieldCheck, Wallet } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -10,7 +10,7 @@ import {
   Chip,
   Divider,
   Field,
-  LabelRow,
+  InfoTip,
   Notice,
   RoundIconButton,
   Section,
@@ -19,14 +19,15 @@ import {
 } from '@/components/ui';
 import { HELP } from '@/lib/help';
 import { useAuth } from '@/lib/auth';
-import { getMyDues, PAYMENT_METHODS, reportDuesPayment, type MyDues, type PaymentMethod } from '@/lib/bookings';
-import { formatAmountInput, formatDateShort, formatLKR, parseAmount } from '@/lib/format';
+import { feeRules, getMyDues, PAYMENT_METHODS, reportDuesPayment, type MyDues, type PaymentMethod } from '@/lib/bookings';
+import { formatCoins, freeRentalsLeft, ownerBadge, rentalFee, toCoins, topUpPacks, walletCoins } from '@/lib/coins';
+import { formatDateShort, formatLKR } from '@/lib/format';
 import { friendlyError } from '@/lib/supabase';
 import { contactSupport, hasSupport } from '@/lib/support';
 import { colors, font, maxContentWidth, radius } from '@/theme';
 
-// Owner's balance with RentAnything: commissions from rentals, payments, and
-// how to pay (docs/SPEC.md §12).
+// Owner's coin wallet: fees from rentals, coins bought, rewards, and how to
+// buy coins (docs/SPEC.md §12, §16).
 export default function DuesScreen() {
   const { session } = useAuth();
   const [dues, setDues] = useState<MyDues | null>(null);
@@ -57,7 +58,7 @@ export default function DuesScreen() {
     return (
       <Screen>
         <TopBar onBack={goBack} />
-        <SignInPrompt title="Payments to RentAnything" text="Sign in to see your balance." />
+        <SignInPrompt title="RentAnything coins" text="Sign in to see your coins." />
       </Screen>
     );
   }
@@ -78,8 +79,13 @@ export default function DuesScreen() {
     );
   }
 
+  const coinValue = dues.coin_value || 10;
   const owed = Math.max(0, dues.balance - dues.pending);
+  const wallet = walletCoins(dues.balance, coinValue);
   const pendingPayment = dues.payments.find((p) => p.status === 'pending');
+  const freeLeft = freeRentalsLeft(dues.free_rentals, dues.verified_rentals);
+  const badge = ownerBadge(dues.verified_rentals);
+  const coins = (rupees: number) => formatCoins(toCoins(rupees, coinValue));
 
   return (
     <Screen>
@@ -97,82 +103,122 @@ export default function DuesScreen() {
               }}
             />
           }>
-          <Section style={{ gap: 12 }}>
-            <LabelRow
-              text={dues.balance > 0 ? 'You owe RentAnything' : 'Your balance'}
-              help={HELP.balance}
-              style={styles.label}
-            />
-            <Text style={[styles.amount, dues.restricted && { color: colors.danger }]}>
-              {formatLKR(Math.max(0, dues.balance))}
+          <View style={[styles.wallet, dues.restricted && { backgroundColor: colors.danger }]}>
+            <View style={styles.row}>
+              <Coins size={20} color={colors.white} />
+              <Text style={styles.walletLabel}>Your coins</Text>
+              <View style={{ flex: 1 }} />
+              <InfoTip help={HELP.balance} size={18} />
+            </View>
+            <Text style={styles.walletAmount} accessibilityLabel={`Your coins: ${formatCoins(wallet)}`}>
+              {formatCoins(wallet)}
             </Text>
+            <Text style={styles.walletSub}>
+              {wallet < 0
+                ? `You owe ${formatLKR(Math.max(0, dues.balance))}`
+                : wallet > 0
+                  ? 'Paid in advance. Fees come out of these coins.'
+                  : 'All paid up. Thank you!'}
+              {'  ·  '}1 coin = {formatLKR(coinValue)}
+            </Text>
+          </View>
+
+          <Section style={{ gap: 10 }}>
             {dues.restricted ? (
               <Notice
                 icon={CircleAlert}
                 tone="danger"
                 text={
                   dues.restricted_reason === 'limit'
-                    ? `You owe ${formatLKR(dues.dues_limit)} or more, so your vehicles are hidden from search and you can't accept bookings. Pay to bring them back.`
-                    : `Part of your balance is more than ${dues.dues_days} days old, so your vehicles are hidden from search. Pay to bring them back.`
+                    ? `You owe ${coins(dues.dues_limit)} or more, so your vehicles are hidden from search and you can't accept bookings. Buy coins to bring them back.`
+                    : `Some coins are owed for more than ${dues.dues_days} days, so your vehicles are hidden from search. Buy coins to bring them back.`
                 }
               />
-            ) : dues.balance <= 0 ? (
-              <View style={styles.row}>
-                <CircleCheck size={18} color={colors.success700} />
-                <Text style={[styles.sub, { color: colors.success700 }]}>All paid up. Thank you!</Text>
-              </View>
             ) : owed > 0 ? (
               <Text style={styles.sub}>
-                {dues.due_by ? `Please pay by ${formatDateShort(dues.due_by)}` : 'Please pay soon'}, or before you owe{' '}
-                {formatLKR(dues.dues_limit)}, to keep your vehicles in search.
+                {dues.due_by ? `Please buy coins by ${formatDateShort(dues.due_by)}` : 'Please buy coins soon'}, and
+                before you owe {coins(dues.dues_limit)}, to keep your vehicles in search.
               </Text>
-            ) : null}
+            ) : (
+              <View style={styles.row}>
+                <CircleCheck size={18} color={colors.success700} />
+                <Text style={[styles.sub, { color: colors.success700, flex: 1 }]}>
+                  Your vehicles are showing in search.
+                </Text>
+              </View>
+            )}
             {pendingPayment ? (
               <View style={styles.row}>
                 <Clock size={16} color={colors.offerText} />
                 <Text style={[styles.sub, { color: colors.offerText, flex: 1 }]}>
-                  We&apos;re checking your payment of {formatLKR(pendingPayment.amount)}. Your vehicles stay visible
-                  meanwhile.
+                  We&apos;re checking your payment of {formatLKR(pendingPayment.amount)} (
+                  {coins(pendingPayment.amount)}). Your vehicles stay visible meanwhile.
                 </Text>
               </View>
             ) : null}
           </Section>
 
+          <Section title="Your rewards" help={HELP.rewards}>
+            <View style={styles.reward}>
+              <View style={[styles.rewardIcon, { backgroundColor: colors.offer50 }]}>
+                <Gift size={20} color={colors.offerText} />
+              </View>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={styles.entryTitle}>
+                  {freeLeft > 0
+                    ? `${freeLeft} free rental${freeLeft === 1 ? '' : 's'} left`
+                    : `Your ${dues.free_rentals} free rentals are used`}
+                </Text>
+                {dues.free_rentals > 0 ? (
+                  <View style={styles.dots}>
+                    {Array.from({ length: dues.free_rentals }, (_, i) => (
+                      <View
+                        key={i}
+                        style={[styles.dot, i < dues.verified_rentals && { backgroundColor: colors.offerText }]}
+                      />
+                    ))}
+                  </View>
+                ) : null}
+                <Text style={styles.sub}>
+                  {freeLeft > 0
+                    ? 'No fee on these. Start them with the customer’s code to use them.'
+                    : `Now ${dues.commission_percent}% of the agreed price${dues.fee_cap > 0 ? `, never more than ${coins(dues.fee_cap)} per rental` : ''}.`}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.reward}>
+              <View style={[styles.rewardIcon, { backgroundColor: colors.success50 }]}>
+                <ShieldCheck size={20} color={colors.success700} />
+              </View>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={styles.entryTitle}>{badge ? badge.label : 'No verified rentals yet'}</Text>
+                <Text style={styles.sub}>
+                  {badge?.top
+                    ? 'You have the Top owner badge. Customers see it and you show higher in search.'
+                    : `Each rental you start with the code counts. More verified rentals = higher in search.${
+                        dues.verified_rentals < 10 ? ` ${10 - dues.verified_rentals} more for the Top owner badge.` : ''
+                      }`}
+                </Text>
+              </View>
+            </View>
+          </Section>
+
           <Section title="How it works" help={HELP.fee}>
             <Text style={styles.body}>
-              Customers pay you in cash. When a rental starts (you enter the customer&apos;s code), RentAnything&apos;s
-              fee of {dues.commission_percent}% of the agreed price is added here. Pay your balance any time.
+              Customers pay you in cash. When you start a rental with the customer&apos;s code, its fee comes out of
+              your coins: {dues.commission_percent}% of the agreed price
+              {dues.fee_cap > 0 ? `, at most ${coins(dues.fee_cap)}` : ''}. Example: a Rs 40,000 rental costs{' '}
+              {coins(rentalFee(40000, { ...feeRules(dues), freeLeft: 0 }))}.
             </Text>
           </Section>
 
-          {owed > 0 || dues.balance > 0 ? (
-            <Section title="How to pay">
-              {dues.payment_details ? (
-                <View style={styles.details}>
-                  <Text style={styles.body} selectable>
-                    {dues.payment_details}
-                  </Text>
-                </View>
-              ) : (
-                <Text style={styles.sub}>Contact us for the payment details.</Text>
-              )}
-              {hasSupport ? (
-                <Button
-                  label="Ask support on WhatsApp"
-                  kind="ghost"
-                  size="sm"
-                  icon={MessageCircle}
-                  onPress={() => contactSupport(`Hi RentAnything, I want to pay my balance of ${formatLKR(owed)}.`)}
-                />
-              ) : null}
-            </Section>
+          {!pendingPayment ? (
+            <BuyCoins dues={dues} owedCoins={Math.max(0, -wallet)} onDone={load} />
           ) : null}
-
-          {owed > 0 && !pendingPayment ? <ReportPayment owed={owed} onDone={load} /> : null}
 
           <Section title="History">
             {dues.entries.length === 0 && dues.payments.length === 0 ? (
-              <Text style={styles.sub}>Nothing yet. Fees appear here when a rental starts.</Text>
+              <Text style={styles.sub}>Nothing yet. Rentals and coin purchases appear here.</Text>
             ) : null}
             {dues.payments
               .filter((p) => p.status !== 'approved')
@@ -180,17 +226,17 @@ export default function DuesScreen() {
                 <View key={`p${p.id}`} style={styles.entry}>
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={styles.entryTitle}>
-                      Payment reported · {PAYMENT_METHODS.find((m) => m.value === p.method)?.label}
+                      Coins bought · {PAYMENT_METHODS.find((m) => m.value === p.method)?.label}
                     </Text>
                     <Text style={styles.sub}>
-                      {formatDateShort(p.created_at.slice(0, 10))}
+                      {formatDateShort(p.created_at.slice(0, 10))} · {formatLKR(p.amount)}
                       {p.reference ? ` · ${p.reference}` : ''}
                       {p.status === 'pending' ? ' · Checking' : ' · Not received'}
                       {p.admin_note ? ` — ${p.admin_note}` : ''}
                     </Text>
                   </View>
                   <Text style={[styles.entryAmount, { color: p.status === 'rejected' ? colors.danger : colors.text2 }]}>
-                    {formatLKR(p.amount)}
+                    +{coins(p.amount)}
                   </Text>
                 </View>
               ))}
@@ -200,7 +246,7 @@ export default function DuesScreen() {
                 <View style={styles.entry}>
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={styles.entryTitle}>
-                      {e.kind === 'commission' ? 'Fee' : e.kind === 'payment' ? 'Payment received' : 'Adjustment'}
+                      {e.kind === 'commission' ? 'Rental fee' : e.kind === 'payment' ? 'Coins bought' : 'Adjustment'}
                     </Text>
                     <Text style={styles.sub}>
                       {formatDateShort(e.created_at.slice(0, 10))}
@@ -208,8 +254,8 @@ export default function DuesScreen() {
                     </Text>
                   </View>
                   <Text style={[styles.entryAmount, { color: e.amount < 0 ? colors.success700 : colors.ink }]}>
-                    {e.amount < 0 ? '−' : '+'}
-                    {formatLKR(Math.abs(e.amount))}
+                    {e.amount < 0 ? '+' : '−'}
+                    {coins(Math.abs(e.amount))}
                   </Text>
                 </View>
               </View>
@@ -221,25 +267,24 @@ export default function DuesScreen() {
   );
 }
 
-function ReportPayment({ owed, onDone }: { owed: number; onDone: () => void }) {
+// Pick a coin pack, pay outside the app, then tell us here.
+function BuyCoins({ dues, owedCoins, onDone }: { dues: MyDues; owedCoins: number; onDone: () => void }) {
   const { toast } = useFeedback();
-  const [amount, setAmount] = useState(formatAmountInput(String(owed)));
+  const coinValue = dues.coin_value || 10;
+  const packs = topUpPacks(owedCoins);
+  const [pack, setPack] = useState(packs[0]);
   const [method, setMethod] = useState<PaymentMethod>('bank');
   const [reference, setReference] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const amount = pack * coinValue;
 
   const submit = async () => {
-    const n = parseAmount(amount);
-    if (!n || n <= 0) {
-      setError('Enter the amount you paid.');
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
-      await reportDuesPayment(n, method, reference);
-      toast("Thanks! We'll confirm your payment soon.");
+      await reportDuesPayment(amount, method, reference);
+      toast("Thanks! We'll add your coins after we check the payment.");
       onDone();
     } catch (e) {
       setError(friendlyError(e));
@@ -249,16 +294,38 @@ function ReportPayment({ owed, onDone }: { owed: number; onDone: () => void }) {
   };
 
   return (
-    <Section title="I've paid">
-      <Text style={styles.sub}>After you pay, tell us here so we can match your payment.</Text>
-      <Field
-        label="Amount paid"
-        prefix="Rs"
-        value={amount}
-        onChangeText={(t) => setAmount(formatAmountInput(t))}
-        keyboardType="number-pad"
-      />
-      <Text style={styles.fieldLabel}>Paid by</Text>
+    <Section title={owedCoins > 0 ? 'Buy coins to pay what you owe' : 'Buy coins in advance'}>
+      <Text style={styles.fieldLabel}>1. Choose coins</Text>
+      <Wrap>
+        {packs.map((p) => (
+          <Chip
+            key={p}
+            label={`${p.toLocaleString('en-US')} coins · ${formatLKR(p * coinValue)}`}
+            selected={pack === p}
+            onPress={() => setPack(p)}
+          />
+        ))}
+      </Wrap>
+      <Text style={styles.fieldLabel}>2. Pay {formatLKR(amount)} to RentAnything</Text>
+      {dues.payment_details ? (
+        <View style={styles.details}>
+          <Text style={styles.body} selectable>
+            {dues.payment_details}
+          </Text>
+        </View>
+      ) : (
+        <Text style={styles.sub}>Contact us for the payment details.</Text>
+      )}
+      {hasSupport ? (
+        <Button
+          label="Ask support on WhatsApp"
+          kind="ghost"
+          size="sm"
+          icon={MessageCircle}
+          onPress={() => contactSupport(`Hi RentAnything, I want to buy ${pack} coins (${formatLKR(amount)}).`)}
+        />
+      ) : null}
+      <Text style={styles.fieldLabel}>3. Tell us how you paid</Text>
       <Wrap>
         {PAYMENT_METHODS.map((m) => (
           <Chip key={m.value} label={m.label} selected={method === m.value} onPress={() => setMethod(m.value)} />
@@ -272,7 +339,7 @@ function ReportPayment({ owed, onDone }: { owed: number; onDone: () => void }) {
         placeholder="e.g. transaction ID or your name on the transfer"
       />
       {error ? <Notice icon={CircleAlert} tone="danger" text={error} /> : null}
-      <Button label="Send" onPress={submit} loading={busy} />
+      <Button label={`I've paid ${formatLKR(amount)}`} icon={Coins} onPress={submit} loading={busy} />
     </Section>
   );
 }
@@ -281,7 +348,7 @@ function TopBar({ onBack }: { onBack: () => void }) {
   return (
     <View style={styles.top}>
       <RoundIconButton icon={ChevronLeft} label="Back" onPress={onBack} background="transparent" size={40} />
-      <Text style={styles.topTitle}>Payments to RentAnything</Text>
+      <Text style={styles.topTitle}>RentAnything coins</Text>
     </View>
   );
 }
@@ -298,7 +365,21 @@ const styles = StyleSheet.create({
   topTitle: { fontSize: 17, fontWeight: font.semibold, color: colors.ink },
   scroll: { gap: 8, paddingBottom: 32, width: '100%', maxWidth: maxContentWidth, alignSelf: 'center' },
   label: { fontSize: 13, fontWeight: font.medium, color: colors.text2 },
-  amount: { fontSize: 32, fontWeight: font.bold, color: colors.ink },
+  wallet: {
+    margin: 16,
+    marginBottom: 0,
+    padding: 20,
+    gap: 6,
+    borderRadius: radius.lg,
+    backgroundColor: colors.primary,
+  },
+  walletLabel: { fontSize: 15, fontWeight: font.semibold, color: colors.white },
+  walletAmount: { fontSize: 36, fontWeight: font.bold, color: colors.white },
+  walletSub: { fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 18 },
+  reward: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  rewardIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  dots: { flexDirection: 'row', gap: 6 },
+  dot: { width: 22, height: 6, borderRadius: 3, backgroundColor: colors.border },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   sub: { fontSize: 13, color: colors.text2, lineHeight: 18 },
   body: { fontSize: 14, color: colors.ink, lineHeight: 20 },

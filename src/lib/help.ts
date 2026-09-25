@@ -108,24 +108,44 @@ export const HELP = {
   handoverCode: {
     title: 'Handover code',
     text:
-      'A 4-number code. It shows the rental really started. ' +
+      'A 4-number code that starts the rental in the app. ' +
       'Customer: when you are happy with the vehicle, show this code to the owner. ' +
       'Owner: type the customer\'s code in the app. ' +
+      'Only rentals started with the code are protected: both of you get a rental record, ' +
+      'a verified review, and help from RentAnything if something goes wrong. ' +
       'Customers, only give the code after you get the vehicle.',
   },
   fee: {
     title: 'RentAnything fee',
     text:
       'Customers pay the owner in cash. ' +
-      'For each rental that starts through the app, the owner pays RentAnything a small fee. ' +
-      'Example: 5% of Rs 40,000 = Rs 2,000.',
+      'For each rental that starts with the code, the owner pays RentAnything a small fee in coins. ' +
+      'Your first rentals are free, and there is a highest fee per rental, so long rentals never cost too much. ' +
+      'Example: 5% of Rs 40,000 = Rs 2,000 = 200 coins.',
   },
   balance: {
-    title: 'Your balance',
+    title: 'Your coins',
     text:
-      'The fees you must pay RentAnything. ' +
-      'If this amount gets too high, or you do not pay for too long, people cannot find your vehicles. ' +
-      'After you pay and tell us in the app, your vehicles come back straight away.',
+      'Coins are how you pay RentAnything. 1 coin = a fixed amount of rupees (shown on this page). ' +
+      'Each rental that starts takes some coins. If you go below zero, you owe coins. ' +
+      'If you owe too many, or for too long, people cannot find your vehicles. ' +
+      'Buy coins with a bank transfer, LankaQR or eZ Cash, tell us in the app, and your vehicles come back straight away. ' +
+      'You can also buy coins in advance.',
+  },
+  rewards: {
+    title: 'Owner rewards',
+    text:
+      'Start every rental with the customer\'s code and you get: ' +
+      'free first rentals, a "verified rentals" badge, a higher place in search (more customers see you), ' +
+      'a rental record with the customer\'s details, and help from RentAnything if a customer causes trouble. ' +
+      'Rentals without the code get none of this.',
+  },
+  rentalRecord: {
+    title: 'Rental record',
+    text:
+      'Proof of this rental: who rented which vehicle, for which days and for what price. ' +
+      'It is saved in the app for both of you. Share it or take a screenshot to keep a copy. ' +
+      'If there is a problem (damage, a missing vehicle, a deposit not returned), show it to RentAnything or the police.',
   },
   hiddenNumbers: {
     title: 'Why phone numbers are hidden',

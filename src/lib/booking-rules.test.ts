@@ -16,6 +16,8 @@ import {
   monthWeeks,
   overlapsBooked,
   pickupDay,
+  recordNumber,
+  rentalRecordText,
   reasonLabel,
   stateLabel,
   tapDay,
@@ -108,4 +110,26 @@ test('monthWeeks starts on Monday', () => {
   assert.deepEqual(weeks[0].slice(0, 2), [null, '2026-09-01']);
   assert.equal(weeks.flat().filter(Boolean).length, 30);
   assert.equal(weeks.every((w) => w.length === 7), true);
+});
+
+test('rental record', () => {
+  assert.equal(recordNumber('1a2b3c4d-5e6f-7a8b-9c0d-112233445566'), 'RA-1A2B3C4D');
+  const text = rentalRecordText(
+    {
+      bookingId: '1a2b3c4d-5e6f-7a8b-9c0d-112233445566',
+      vehicle: 'Toyota KDH',
+      owner: 'Ruwan Jayasinghe',
+      customer: 'Amal Perera',
+      customerPhone: '077 111 2222',
+      collect: 'Sat 26 Sep, evening',
+      back: 'Sun 27 Sep, night',
+      days: 1,
+      agreedTotal: 12000,
+      startedAt: 'Sat 26 Sep 2026, 7:45 pm',
+    },
+    (n) => `Rs ${n.toLocaleString('en-US')}`,
+  );
+  assert.match(text, /^RentAnything rental record RA-1A2B3C4D\n/);
+  assert.match(text, /Customer: Amal Perera \(077 111 2222\)/);
+  assert.match(text, /Agreed price: Rs 12,000/);
 });

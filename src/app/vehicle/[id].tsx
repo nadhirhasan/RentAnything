@@ -1,6 +1,7 @@
 import { createURL } from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
+  Award,
   CalendarCheck,
   CalendarClock,
   Check,
@@ -13,6 +14,7 @@ import {
   MessageCircle,
   Plus,
   Share2,
+  ShieldCheck,
   Snowflake,
   User,
   Users,
@@ -59,6 +61,7 @@ import { LISTING_REPORT_REASONS, reportListing } from '@/lib/trust';
 import { startConversation } from '@/lib/chat';
 import { formatDistance, formatKm, formatLKR, parseAmount } from '@/lib/format';
 import { useUserLocation } from '@/lib/location';
+import { ownerBadge } from '@/lib/coins';
 import { HELP, minHireLabel, minHireSentence } from '@/lib/help';
 import { estimateTrip, headlinePrice } from '@/lib/pricing';
 import { friendlyError } from '@/lib/supabase';
@@ -375,6 +378,15 @@ export default function VehicleScreen() {
             <Avatar name={v.owner_name || 'Owner'} path={v.owner_avatar} size={52} />
             <View style={{ flex: 1 }}>
               <Text style={styles.ownerName}>{v.owner_name || 'Vehicle owner'}</Text>
+              {ownerBadge(v.owner_verified) ? (
+                <View style={{ flexDirection: 'row', paddingVertical: 2 }}>
+                  <Tag
+                    icon={ownerBadge(v.owner_verified)!.top ? Award : ShieldCheck}
+                    label={ownerBadge(v.owner_verified)!.label}
+                    tone="success"
+                  />
+                </View>
+              ) : null}
               <Text style={styles.sub}>
                 Owner · {v.owner_listing_count} vehicle{v.owner_listing_count === 1 ? '' : 's'} listed
               </Text>

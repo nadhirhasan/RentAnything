@@ -1,11 +1,12 @@
 import { Image } from 'expo-image';
 import { Link } from 'expo-router';
-import { Armchair, CalendarClock, Car, Gauge, MapPin, Snowflake, Tag as TagIcon, User, Users } from 'lucide-react-native';
+import { Armchair, Award, CalendarClock, Car, Gauge, MapPin, ShieldCheck, Snowflake, Tag as TagIcon, User, Users } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { RatingBadge } from '@/components/reviews';
 import { Skeleton, Tag } from '@/components/ui';
 import { formatDistance, formatKm, formatLKR } from '@/lib/format';
+import { ownerBadge } from '@/lib/coins';
 import { minHireLabel } from '@/lib/help';
 import { headlinePrice } from '@/lib/pricing';
 import { photoUrl } from '@/lib/supabase';
@@ -84,6 +85,7 @@ export function VehicleCard({ v }: { v: VehicleSummary }) {
   const offer =
     price.unit === 'month' || (price.unit === 'week' && v.monthly_price == null) ? null : offerLabel(v);
   const minHire = minHireLabel(v.min_days);
+  const badge = ownerBadge(v.owner_verified);
   const distance = formatDistance(v.distance_km);
   return (
     <Link href={{ pathname: '/vehicle/[id]', params: { id: v.id } }} asChild>
@@ -136,8 +138,9 @@ export function VehicleCard({ v }: { v: VehicleSummary }) {
               />
             ) : null}
           </View>
-          {minHire || offer ? (
+          {badge || minHire || offer ? (
             <View style={styles.tags}>
+              {badge ? <Tag icon={badge.top ? Award : ShieldCheck} label={badge.label} tone="success" /> : null}
               {minHire ? <Tag icon={CalendarClock} label={minHire} tone="primary" /> : null}
               {offer ? <Tag icon={TagIcon} label={offer} tone="offer" /> : null}
             </View>

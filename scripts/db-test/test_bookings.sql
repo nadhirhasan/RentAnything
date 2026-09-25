@@ -1,6 +1,9 @@
 -- Tests for bookings, the handover code, owner dues and restrictions.
 -- Runs after test.sql (helpers in schema "test").
 
+-- Plain 5% here; free rentals, the cap and coin rounding are tested in test_rewards.sql.
+update public.app_settings set free_rentals = 0, fee_cap = 0, coin_value = 1;
+
 -- Users: O owner, C and K customers, N customer without phone, X stranger, M admin.
 insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-0000-0000-0000000000f1', 'o@x.lk', '{"full_name":"Ruwan Jayasinghe"}'),

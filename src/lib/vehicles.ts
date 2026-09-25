@@ -19,7 +19,7 @@ export type FuelPolicy = 'same_level' | 'pay_used' | 'included';
 export type DocumentKind = 'nic' | 'driving_licence' | 'proof_of_address' | 'guarantor';
 export type ContactChannel = 'call' | 'whatsapp';
 export type DriverMode = 'with_driver' | 'self_drive';
-export type SortBy = 'nearest' | 'price' | 'rating';
+export type SortBy = 'recommended' | 'nearest' | 'price' | 'rating';
 
 export const VEHICLE_TYPES: { value: VehicleType; label: string }[] = [
   { value: 'car', label: 'Car' },
@@ -90,7 +90,7 @@ export const DEFAULT_FILTERS: SearchFilters = {
   maxPricePerDay: null,
   unlimitedKmOnly: false,
   radiusKm: null,
-  sortBy: 'nearest',
+  sortBy: 'recommended',
 };
 
 export function activeFilterCount(f: SearchFilters): number {
@@ -129,6 +129,7 @@ export type VehicleSummary = {
   driver_available: boolean;
   driver_price_per_day: number | null;
   min_days: number;
+  owner_verified: number; // owner's rentals started with the code
   cover_photo: string | null;
   rating_avg: number | null; // only when there are 3+ reviews
   rating_count: number;
@@ -183,6 +184,7 @@ export type VehicleDetail = {
   hidden_reason: 'reports' | 'admin' | null; // only for the owner
   owner_name: string;
   owner_avatar: string | null;
+  owner_verified: number;
   owner_listing_count: number;
   owner_rating_avg: number | null;
   owner_rating_count: number;
@@ -255,6 +257,7 @@ export type VehicleDetailsRow = Omit<
   | 'hidden_reason'
   | 'owner_name'
   | 'owner_avatar'
+  | 'owner_verified'
   | 'owner_listing_count'
   | 'owner_rating_avg'
   | 'owner_rating_count'

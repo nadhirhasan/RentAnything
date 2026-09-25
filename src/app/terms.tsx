@@ -39,13 +39,14 @@ export default function TermsScreen() {
         rentals.</B>
       </Li>
       <Li>
-        When a rental starts, RentAnything&apos;s fee (a percentage of the agreed price, shown before you accept
-        and on your payments page) is added to the owner&apos;s balance. Owners pay their balance by bank transfer,
-        LankaQR or eZ Cash.
+        When a rental starts with the customer&apos;s code, RentAnything&apos;s fee (a percentage of the agreed
+        price, with a maximum per rental, shown on your coins page) is taken from the owner&apos;s coins. A new
+        owner&apos;s first rentals are free. Owners buy coins by bank transfer, LankaQR or eZ Cash. Coins have a
+        fixed value in rupees, are only used for RentAnything fees, and are not refunded as cash.
       </Li>
       <Li>
-        If an owner&apos;s balance gets too high or stays unpaid for too long, their vehicles are hidden and they
-        can&apos;t accept bookings until they pay. Owners can&apos;t delete their account while they owe a balance.
+        If an owner owes too many coins, or owes them for too long, their vehicles are hidden and they can&apos;t
+        accept bookings until they buy coins. Owners can&apos;t delete their account while they owe coins.
       </Li>
       <Li>
         Don&apos;t arrange rentals outside the app to avoid the fee after meeting through a booking. If a customer

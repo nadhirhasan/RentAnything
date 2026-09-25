@@ -455,7 +455,35 @@ Decided with the founder on 25 September 2026: make the app feel professional.
   account form's save button only appears after a change, and the booking page no
   longer shows "Message the owner" twice.
 
-## 16. Later
+## 16. Owner rewards and coins
+
+Decided with the founder on 25 September 2026. The fee only works if owners enter the
+customer's code, so entering it must be worth more to the owner than skipping it, and
+customers should ask for it.
+
+- **Coins.** Owners see fees and their balance as coins (1 coin = `coin_value` rupees,
+  default Rs 10). The database still keeps rupees; fees are rounded to whole coins. The
+  wallet is positive when the owner paid in advance and negative when they owe. The
+  payments page is now "RentAnything coins": owners pick a coin pack (what they owe
+  first, then 100 / 300 / 500 / 1,000), pay outside the app and report it as before.
+- **Free first rentals.** An owner's first `free_rentals` (default 3) rentals started
+  with the code have no fee. Rentals charged after a dispute never count as free.
+- **Fee cap.** At most `fee_cap` (default Rs 3,000 = 300 coins) per rental, so long
+  monthly hires stay worth recording. `rental_fee()` applies free rentals, the cap and
+  coin rounding; `start_booking()` and `admin_resolve_dispute()` use it.
+- **Verified rentals.** Rentals started with the code (`owner_verified_rentals()`; not
+  admin-charged disputes). Shown as a badge on cards and the owner card ("3 verified
+  rentals", "Top owner · 12 rentals" at 10+). Search's default sort is now
+  **Recommended**: distance divided by (1 + 0.1 × verified rentals, max 10), so a
+  Top owner counts as half as far away.
+- **Rental record.** Bookings started with the code show a record (number
+  RA-XXXXXXXX, vehicle, owner, customer, customer's phone for the owner, dates, agreed
+  price, start time) that either side can share.
+- **Customers ask for the code.** The customer's code screen explains that only rentals
+  started with the code are protected (rental record, "Verified hire" review, support).
+- Admin settings: free rentals, fee cap and coin value.
+
+## 17. Later
 
 Verification badges, online payments (PayHere),
 featured listings for owners, Sinhala / Tamil, phone OTP login, house rentals and

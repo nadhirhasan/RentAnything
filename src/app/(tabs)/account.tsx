@@ -3,6 +3,7 @@ import { router, useFocusEffect } from 'expo-router';
 import {
   CalendarCheck,
   Car,
+  Coins,
   ChevronRight,
   FileText,
   KeyRound,
@@ -11,7 +12,6 @@ import {
   ShieldCheck,
   Star,
   Trash2,
-  Wallet,
 } from 'lucide-react-native';
 import { useCallback, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -177,8 +177,8 @@ export default function AccountScreen() {
           />
           <Divider />
           <MenuRow
-            icon={<Wallet size={20} color={colors.ink} />}
-            label="Payments to RentAnything"
+            icon={<Coins size={20} color={colors.ink} />}
+            label="RentAnything coins"
             onPress={() => router.push('/dues')}
           />
           {profile?.is_admin ? (
