@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import { DuesBanner } from '@/components/booking';
+import { CoinPill } from '@/components/coin';
 import { useFeedback } from '@/components/feedback';
 import { EmptyState, Screen, SignInPrompt } from '@/components/layout';
 import { OptionSheet } from '@/components/sheet';
@@ -79,6 +80,7 @@ export default function MyVehiclesScreen() {
       <Header
         subtitle={items?.length ? `${onCount} of ${items.length} showing in search` : undefined}
         showAdd
+        dues={dues}
       />
       {items == null ? (
         error ? (
@@ -133,13 +135,14 @@ export default function MyVehiclesScreen() {
   );
 }
 
-function Header({ subtitle, showAdd }: { subtitle?: string; showAdd?: boolean }) {
+function Header({ subtitle, showAdd, dues }: { subtitle?: string; showAdd?: boolean; dues?: MyDues | null }) {
   return (
     <View style={styles.header}>
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={styles.heading}>My vehicles</Text>
         {subtitle ? <Text style={styles.sub}>{subtitle}</Text> : null}
       </View>
+      {dues ? <CoinPill dues={dues} /> : null}
       {showAdd ? <Button label="Add" icon={Plus} size="sm" onPress={() => router.push('/listing/new')} /> : null}
     </View>
   );

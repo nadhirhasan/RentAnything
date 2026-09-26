@@ -8,6 +8,8 @@ import {
   KeyRound,
   MessageCircle,
   Phone,
+  Share2,
+  ShieldCheck,
   Star,
 } from 'lucide-react-native';
 import { useCallback, useState, type ReactNode } from 'react';
@@ -19,6 +21,7 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -37,7 +40,6 @@ import { useAuth } from '@/lib/auth';
 import { HELP } from '@/lib/help';
 import {
   CANCEL_REASONS,
-  commissionFor,
   CUSTOMER_TAGS,
   DECLINE_REASONS,
   formatDay,
@@ -47,13 +49,17 @@ import {
   isValidHandoverCode,
   NO_DEAL_REASONS,
   reasonLabel,
+  recordNumber,
+  rentalRecordText,
   stateHint,
   type CustomerTag,
   type Reason,
+  type RentalRecord,
 } from '@/lib/booking-rules';
 import {
   cancelBooking,
   confirmOutcome,
+  feeRules,
   getBooking,
   getMyDues,
   markNoDeal,
@@ -64,6 +70,7 @@ import {
   type MyDues,
 } from '@/lib/bookings';
 import { openBookingChat } from '@/lib/chat';
+import { formatCoins, rentalFee, toCoins } from '@/lib/coins';
 import { colomboDate, formatAmountInput, formatDateShort, formatLKR, parseAmount, telUrl, whatsappUrl } from '@/lib/format';
 import { friendlyError } from '@/lib/supabase';
 import { colors, font, maxContentWidth, radius } from '@/theme';
@@ -72,7 +79,7 @@ type SheetKind = 'decline' | 'cancel' | 'no_deal' | null;
 
 export default function BookingScreen() {
   const { id, sent } = useLocalSearchParams<{ id: string; sent?: string }>();
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const { toast, confirm } = useFeedback();
 
   const [data, setData] = useState<{ b: BookingDetail | null; dues: MyDues | null } | null>(null);
@@ -248,7 +255,27 @@ export default function BookingScreen() {
               Show this code to the owner <Text style={{ fontWeight: font.bold }}>only after</Text> you&apos;ve checked
               the vehicle and agreed the price. The owner enters it to start the rental. Then pay the owner in cash.
             </Text>
+            <Notice
+              icon={ShieldCheck}
+              text="Protected rental: when the owner enters your code, you both get a rental record, your review shows “Verified hire”, and RentAnything helps if something goes wrong (for example, the deposit is not returned). If the owner says “no need for the code”, ask them to enter it."
+            />
           </Section>
+        ) : null}
+
+        {/* Owner: why the code is worth entering */}
+        {owner && b.state === 'accepted' ? (
+          <View style={{ paddingHorizontal: 16 }}>
+            <Notice
+              icon={ShieldCheck}
+              text="Start with the customer’s code and you get: a rental record with the customer’s details, a verified rental (you show higher in search), and RentAnything’s help if the customer causes trouble."
+              help={HELP.rewards}
+            />
+          </View>
+        ) : null}
+
+        {/* Rental record: started with the code */}
+        {b.started_at && !b.dispute && b.agreed_total != null ? (
+          <RentalRecordCard b={b} myName={profile?.full_name || session?.user.email || 'You'} owner={owner} />
         ) : null}
 
         {askOutcome ? (
@@ -297,10 +324,10 @@ export default function BookingScreen() {
           )}
           {owner && b.commission != null ? (
             <KeyValue
-              label={`RentAnything fee (${b.commission_percent}%)`}
+              label="RentAnything fee"
               help={HELP.fee}
-              value={formatLKR(b.commission)}
-              sub="Added to your balance"
+              value={b.commission === 0 ? 'Free' : formatCoins(toCoins(b.commission, data?.dues?.coin_value || 1))}
+              sub={b.commission === 0 ? 'A free rental for you' : `${formatLKR(b.commission)} · from your coins`}
             />
           ) : null}
           {b.note ? (
@@ -441,7 +468,7 @@ export default function BookingScreen() {
         ) : !owner && (b.state === 'declined' || b.state === 'expired' || b.state === 'cancelled' || b.state === 'no_deal') ? (
           <Button label="Find another vehicle" kind="soft" onPress={() => router.replace('/')} />
         ) : owner && (b.state === 'started' || b.state === 'completed') ? (
-          <Button label="Payments to RentAnything" kind="soft" onPress={() => router.push('/dues')} />
+          <Button label="My wallet" kind="soft" onPress={() => router.push('/dues')} />
         ) : null}
       </ActionBar>
 
@@ -464,6 +491,7 @@ export default function BookingScreen() {
         <StartSheet
           visible={starting}
           b={b}
+          dues={data?.dues ?? null}
           onClose={() => setStarting(false)}
           onStarted={() => {
             setStarting(false);
@@ -634,10 +662,12 @@ function RateCustomer({ b, onSaved }: { b: BookingDetail; onSaved: () => void })
 function StartSheet({
   visible,
   b,
+  dues,
   onClose,
   onStarted,
 }: {
   visible: boolean;
+  dues: MyDues | null;
   b: BookingDetail;
   onClose: () => void;
   onStarted: () => void;
@@ -648,7 +678,10 @@ function StartSheet({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const total = parseAmount(amount);
-  const fee = total != null ? commissionFor(total, b.commission_percent) : null;
+  // Same maths as the database: free first rentals, the cap, whole coins.
+  const rules = dues ? feeRules(dues, b.commission_percent) : null;
+  const fee = total != null && rules ? rentalFee(total, rules) : null;
+  const coinValue = dues?.coin_value || 1;
 
   const submit = async () => {
     if (!isValidHandoverCode(code)) {
@@ -707,9 +740,11 @@ function StartSheet({
               onChangeText={(t) => setAmount(formatAmountInput(t))}
               keyboardType="number-pad"
               hint={
-                fee != null
-                  ? `RentAnything fee (${b.commission_percent}%): ${formatLKR(fee)}, added to your balance.`
-                  : undefined
+                fee == null
+                  ? undefined
+                  : rules && rules.freeLeft > 0
+                    ? `Free rental: no fee (${rules.freeLeft} free left). It still counts as a verified rental.`
+                    : `RentAnything fee: ${formatCoins(toCoins(fee, coinValue))} (${formatLKR(fee)}). It also counts as a verified rental.`
               }
             />
             {error ? <Notice icon={CircleAlert} tone="danger" text={error} /> : null}
@@ -721,7 +756,60 @@ function StartSheet({
   );
 }
 
+function RentalRecordCard({ b, myName, owner }: { b: BookingDetail; myName: string; owner: boolean }) {
+  const times = handover(b.start_date, b.days, b.pickup);
+  const startedAt = new Date(b.started_at!).toLocaleString('en-GB', {
+    timeZone: 'Asia/Colombo',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  const record: RentalRecord = {
+    bookingId: b.id,
+    vehicle: b.title,
+    owner: owner ? myName : b.other_name,
+    customer: owner ? b.other_name : myName,
+    customerPhone: owner ? b.other_phone : null,
+    collect: times.collect,
+    back: times.back,
+    days: b.days,
+    agreedTotal: b.agreed_total ?? b.estimate,
+    startedAt,
+  };
+  return (
+    <Section title="Rental record" help={HELP.rentalRecord}>
+      <View style={styles.record}>
+        <View style={styles.row}>
+          <ShieldCheck size={20} color={colors.success700} />
+          <Text style={styles.recordNo}>{recordNumber(b.id)}</Text>
+          <View style={{ flex: 1 }} />
+          <Text style={styles.recordTag}>Started with the code</Text>
+        </View>
+        <KeyValue label="Vehicle" value={record.vehicle} />
+        <KeyValue label="Owner" value={record.owner} />
+        <KeyValue label="Customer" value={record.customer} sub={record.customerPhone ?? undefined} />
+        <KeyValue label="Agreed price" value={formatLKR(record.agreedTotal)} />
+        <KeyValue label="Started" value={startedAt} />
+      </View>
+      <Button
+        label="Share record"
+        kind="ghost"
+        size="sm"
+        icon={Share2}
+        onPress={() => Share.share({ message: rentalRecordText(record, formatLKR) }).catch(() => {})}
+      />
+    </Section>
+  );
+}
+
 const styles = StyleSheet.create({
+  record: { gap: 10, padding: 14, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
+  recordNo: { fontSize: 16, fontWeight: font.bold, color: colors.ink, letterSpacing: 0.5 },
+  recordTag: { fontSize: 12, fontWeight: font.semibold, color: colors.success700 },
   top: {
     flexDirection: 'row',
     alignItems: 'center',

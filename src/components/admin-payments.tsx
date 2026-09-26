@@ -363,6 +363,9 @@ function SettingsForm({ initial }: { initial: AppSettings }) {
   const [limit, setLimit] = useState(formatAmountInput(String(initial.dues_limit)));
   const [days, setDays] = useState(String(initial.dues_days));
   const [details, setDetails] = useState(initial.payment_details);
+  const [free, setFree] = useState(String(initial.free_rentals));
+  const [cap, setCap] = useState(formatAmountInput(String(initial.fee_cap)));
+  const [coin, setCoin] = useState(String(initial.coin_value));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -373,10 +376,23 @@ function SettingsForm({ initial }: { initial: AppSettings }) {
     if (!Number.isFinite(p) || p < 0 || p > 30) return setError('Fee must be between 0 and 30%.');
     if (l == null) return setError('Enter the balance limit.');
     if (!Number.isInteger(d) || d < 1 || d > 365) return setError('Days must be between 1 and 365.');
+    const f = Number(free);
+    const c = parseAmount(cap) ?? 0;
+    const v = Number(coin);
+    if (!Number.isInteger(f) || f < 0 || f > 50) return setError('Free rentals must be between 0 and 50.');
+    if (!Number.isInteger(v) || v < 1 || v > 1000) return setError('A coin must be worth Rs 1 to 1,000.');
     setBusy(true);
     setError(null);
     try {
-      await updateSettings({ commission_percent: p, dues_limit: l, dues_days: d, payment_details: details });
+      await updateSettings({
+        commission_percent: p,
+        dues_limit: l,
+        dues_days: d,
+        payment_details: details,
+        free_rentals: f,
+        fee_cap: c,
+        coin_value: v,
+      });
       toast('Settings saved');
     } catch (e) {
       setError(friendlyError(e));
@@ -396,6 +412,29 @@ function SettingsForm({ initial }: { initial: AppSettings }) {
             onChangeText={setPercent}
             keyboardType="decimal-pad"
             hint="Of the agreed price, added to the owner's balance when a rental starts. Changes apply to new requests."
+          />
+          <Field
+            label="Free rentals for new owners"
+            value={free}
+            onChangeText={(t) => setFree(t.replace(/\D/g, '').slice(0, 2))}
+            keyboardType="number-pad"
+            hint="An owner's first rentals started with the code have no fee."
+          />
+          <Field
+            label="Highest fee per rental"
+            prefix="Rs"
+            value={cap}
+            onChangeText={(t) => setCap(formatAmountInput(t))}
+            keyboardType="number-pad"
+            hint="Use 0 for no limit. Keeps long, expensive rentals worth recording."
+          />
+          <Field
+            label="1 coin is worth"
+            prefix="Rs"
+            value={coin}
+            onChangeText={(t) => setCoin(t.replace(/\D/g, '').slice(0, 4))}
+            keyboardType="number-pad"
+            hint="Owners see fees and balances in coins. Fees are rounded to whole coins."
           />
           <Field
             label="Hide vehicles when an owner owes"

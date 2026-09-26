@@ -108,24 +108,54 @@ export const HELP = {
   handoverCode: {
     title: 'Handover code',
     text:
-      'A 4-number code. It shows the rental really started. ' +
+      'A 4-number code that starts the rental in the app. ' +
       'Customer: when you are happy with the vehicle, show this code to the owner. ' +
       'Owner: type the customer\'s code in the app. ' +
+      'Only rentals started with the code are protected: both of you get a rental record, ' +
+      'a verified review, and help from RentAnything if something goes wrong. ' +
       'Customers, only give the code after you get the vehicle.',
   },
   fee: {
     title: 'RentAnything fee',
     text:
       'Customers pay the owner in cash. ' +
-      'For each rental that starts through the app, the owner pays RentAnything a small fee. ' +
-      'Example: 5% of Rs 40,000 = Rs 2,000.',
+      'For each rental that starts with the code, the owner pays RentAnything a small fee in coins. ' +
+      'Your first rentals are free, and there is a highest fee per rental, so long rentals never cost too much. ' +
+      'Example: 5% of Rs 40,000 = Rs 2,000 = 2,000 coins.',
   },
   balance: {
-    title: 'Your balance',
+    title: 'Your wallet',
     text:
-      'The fees you must pay RentAnything. ' +
-      'If this amount gets too high, or you do not pay for too long, people cannot find your vehicles. ' +
-      'After you pay and tell us in the app, your vehicles come back straight away.',
+      'Coins are how you pay RentAnything. 1 coin = Rs 1. ' +
+      'Each rental that starts takes some coins. You can go below zero: you get 1,000 coins of credit. ' +
+      'While you are inside your credit, your vehicles show as normal, and we just remind you to top up. ' +
+      'If you use all 1,000 coins, or owe coins for too long, people cannot find your vehicles until you top up. ' +
+      'Top up with a bank transfer, LankaQR or eZ Cash, tell us in the app, and your vehicles come back straight away.',
+  },
+  rewards: {
+    title: 'Owner rewards',
+    text:
+      'Start every rental with the customer\'s code and you get: ' +
+      'free first rentals, a success score and badges (Rising Star, Top Rated, Top Rated Plus), ' +
+      'a higher place in search (more customers see you), ' +
+      'a rental record with the customer\'s details, and help from RentAnything if a customer causes trouble. ' +
+      'Rentals without the code get none of this.',
+  },
+  successScore: {
+    title: 'Success score',
+    text:
+      'Shows how happy customers are with you, like on Upwork. ' +
+      'Good: reviews with 4 or 5 stars, and rentals started with the code that had no problems. ' +
+      'Bad: reviews with 1 or 2 stars, cancelling after you accepted, not turning up, a vehicle not as described, ' +
+      'or skipping the code. Score = good ÷ (good + bad), from the last 12 months. ' +
+      'Badges: Rising Star (80%+ and 1 rental), Top Rated (90%+ and 5 rentals), Top Rated Plus (90%+ and 20 rentals).',
+  },
+  rentalRecord: {
+    title: 'Rental record',
+    text:
+      'Proof of this rental: who rented which vehicle, for which days and for what price. ' +
+      'It is saved in the app for both of you. Share it or take a screenshot to keep a copy. ' +
+      'If there is a problem (damage, a missing vehicle, a deposit not returned), show it to RentAnything or the police.',
   },
   hiddenNumbers: {
     title: 'Why phone numbers are hidden',

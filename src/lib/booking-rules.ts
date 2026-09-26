@@ -280,3 +280,39 @@ export function commissionFor(total: number, percent: number): number {
 export function isValidHandoverCode(code: string): boolean {
   return /^\d{4}$/.test(code.trim());
 }
+
+// ---------------------------------------------------------------------------
+// Rental record: proof of a rental started with the code (docs/SPEC.md §16)
+// ---------------------------------------------------------------------------
+
+export function recordNumber(bookingId: string): string {
+  return `RA-${bookingId.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+}
+
+export type RentalRecord = {
+  bookingId: string;
+  vehicle: string;
+  owner: string;
+  customer: string;
+  customerPhone?: string | null;
+  collect: string;
+  back: string;
+  days: number;
+  agreedTotal: number;
+  startedAt: string; // "Sat 26 Sep 2026, 7:45 pm"
+};
+
+// Plain text to share or keep (WhatsApp, SMS, notes).
+export function rentalRecordText(r: RentalRecord, formatMoney: (n: number) => string): string {
+  return [
+    `RentAnything rental record ${recordNumber(r.bookingId)}`,
+    `Vehicle: ${r.vehicle}`,
+    `Owner: ${r.owner}`,
+    `Customer: ${r.customer}${r.customerPhone ? ` (${r.customerPhone})` : ''}`,
+    `Collect: ${r.collect}`,
+    `Return: ${r.back}`,
+    `Days: ${r.days}`,
+    `Agreed price: ${formatMoney(r.agreedTotal)}`,
+    `Started with the handover code: ${r.startedAt}`,
+  ].join('\n');
+}

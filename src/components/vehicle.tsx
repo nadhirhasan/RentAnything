@@ -4,6 +4,7 @@ import { Armchair, CalendarClock, Car, Gauge, MapPin, Snowflake, Tag as TagIcon,
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { RatingBadge } from '@/components/reviews';
+import { ScoreBadge, TierBadge } from '@/components/reputation';
 import { Skeleton, Tag } from '@/components/ui';
 import { formatDistance, formatKm, formatLKR } from '@/lib/format';
 import { minHireLabel } from '@/lib/help';
@@ -136,6 +137,12 @@ export function VehicleCard({ v }: { v: VehicleSummary }) {
               />
             ) : null}
           </View>
+          {v.owner_tier || v.owner_score != null ? (
+            <View style={styles.tags}>
+              <TierBadge tier={v.owner_tier} />
+              <ScoreBadge score={v.owner_score} />
+            </View>
+          ) : null}
           {minHire || offer ? (
             <View style={styles.tags}>
               {minHire ? <Tag icon={CalendarClock} label={minHire} tone="primary" /> : null}

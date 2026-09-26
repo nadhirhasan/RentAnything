@@ -1,4 +1,5 @@
 // Bookings and owner dues (see supabase/migrations/*_bookings_and_dues.sql).
+import { freeRentalsLeft, type FeeRules } from './coins';
 import type { BookingRole, BookingState, CustomerTag, DateRange, Pickup } from './booking-rules';
 import { supabase } from './supabase';
 
@@ -195,6 +196,14 @@ export type MyDues = {
   dues_days: number;
   commission_percent: number;
   payment_details: string;
+  coin_value: number; // rupees per coin
+  fee_cap: number; // rupees, 0 = no cap
+  free_rentals: number;
+  verified_rentals: number; // rentals started with the code
+  owner_score: number | null; // success score 0-100, null until 3 outcomes
+  owner_tier: string | null; // 'top_rated_plus' | 'top_rated' | 'rising'
+  good_outcomes: number;
+  bad_outcomes: number;
   entries: LedgerEntry[];
   payments: DuesPayment[];
 };
@@ -212,6 +221,16 @@ export async function getMyDues(): Promise<MyDues | null> {
   };
 }
 
+// The owner's fee rules, for previews (same maths as the database).
+export function feeRules(d: MyDues, percent = d.commission_percent): FeeRules {
+  return {
+    percent,
+    cap: d.fee_cap,
+    coinValue: d.coin_value,
+    freeLeft: freeRentalsLeft(d.free_rentals, d.verified_rentals),
+  };
+}
+
 export async function reportDuesPayment(amount: number, method: PaymentMethod, reference: string) {
   const { error } = await supabase.rpc('report_dues_payment', { amount, method, reference });
   if (error) throw error;
@@ -222,13 +241,23 @@ export type AppSettings = {
   dues_limit: number;
   dues_days: number;
   payment_details: string;
+  free_rentals: number;
+  fee_cap: number;
+  coin_value: number;
 };
 
 export async function getAppSettings(): Promise<AppSettings | null> {
   const { data, error } = await supabase.rpc('get_app_settings');
   if (error) throw error;
   const row = list<AppSettings>(data)[0];
-  return row ? { ...row, commission_percent: Number(row.commission_percent) } : null;
+  if (!row) return null;
+  return {
+    ...row,
+    commission_percent: Number(row.commission_percent),
+    free_rentals: row.free_rentals ?? 3,
+    fee_cap: row.fee_cap ?? 3000,
+    coin_value: row.coin_value ?? 1,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -304,6 +333,9 @@ export async function updateSettings(s: AppSettings) {
     dues_limit: s.dues_limit,
     dues_days: s.dues_days,
     payment_details: s.payment_details,
+    free_rentals: s.free_rentals,
+    fee_cap: s.fee_cap,
+    coin_value: s.coin_value,
   });
   if (error) throw error;
 }

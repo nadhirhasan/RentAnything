@@ -339,7 +339,7 @@ function BookingForm({
             <Step
               n={3}
               help={HELP.handoverCode}
-              text="Happy with it? Show the owner your 4-digit code and pay them in cash. Not happy? Tap No deal."
+              text="Happy with it? Show the owner your 4-digit code and pay them in cash. The code protects your rental. Not happy? Tap No deal."
             />
             <Notice icon={Banknote} text="You don't pay anything in the app. Never send money before seeing the vehicle." />
           </Section>
